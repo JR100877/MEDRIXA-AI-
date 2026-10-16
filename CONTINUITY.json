@@ -1,0 +1,12 @@
+{
+  "project": "MEDRIXA AI",
+  "implementation_line": "provisional-2026-10-15",
+  "historical_version": null,
+  "phase": "P0_BASE",
+  "status": "scaffold_only",
+  "code_origin": "new_authorized_provisional",
+  "historical_code_recovered": false,
+  "next_task": "P1: implement contracts, State and StateManager with focused tests",
+  "clinical_validation": "not_performed",
+  "production_allowed": false
+}
