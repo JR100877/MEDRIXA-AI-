@@ -18,6 +18,7 @@ pycparser==3.0
 # PostgreSQL closure of requirements-postgres.txt (P5):
 psycopg==3.3.6
 psycopg-binary==3.3.6
+psycopg-pool==3.3.3
 # Development closure of requirements-dev.txt:
 httpx==0.28.1
 httpcore==1.0.9

@@ -1,3 +1,5 @@
 -r requirements.txt
 # P5: PostgreSQL adapter (optional; imported only when MEDRIXA_PG_DSN is set)
 psycopg[binary]==3.3.6
+# P7.6: connection pooling (official psycopg project); used when MEDRIXA_PG_POOL_SIZE > 0
+psycopg-pool==3.3.3

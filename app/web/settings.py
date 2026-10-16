@@ -32,6 +32,7 @@ class Settings(Contract):
     store_dir: Path | None = None
     postgres_dsn: SecretStr | None = None  # P5; treated as a secret (may hold credentials)
     postgres_migrate: bool = True  # P7.4: False for a least-privilege application role
+    postgres_pool_size: Annotated[int, Field(ge=0, le=100)] = 4  # P7.6: 0 = connection per operation
     max_body_bytes: Annotated[int, Field(ge=1024, le=1_048_576)] = 1_048_576
     token_max_ttl_seconds: Annotated[int, Field(ge=60, le=28_800)] = 3_600
     clock_skew_seconds: Annotated[int, Field(ge=0, le=300)] = 30
@@ -114,7 +115,8 @@ def settings_from_env(environ: Mapping[str, str] | None = None, secrets: SecretP
         data["postgres_dsn"] = postgres_dsn
     for field, variable in (("rate_limit_ip_per_minute", "MEDRIXA_RATE_LIMIT_IP_PER_MINUTE"),
                             ("rate_limit_subject_per_minute", "MEDRIXA_RATE_LIMIT_SUBJECT_PER_MINUTE"),
-                            ("max_active_runs", "MEDRIXA_MAX_ACTIVE_RUNS")):
+                            ("max_active_runs", "MEDRIXA_MAX_ACTIVE_RUNS"),
+                            ("postgres_pool_size", "MEDRIXA_PG_POOL_SIZE")):
         if env.get(variable):
             data[field] = env[variable]
     if env.get("MEDRIXA_PG_MIGRATE"):
@@ -131,4 +133,4 @@ def settings_from_env(environ: Mapping[str, str] | None = None, secrets: SecretP
         raise ConfigurationError("invalid MEDRIXA configuration (MEDRIXA_ENV, MEDRIXA_AUTH_SECRET[_FILE], "
                                  "MEDRIXA_STORE_DIR, MEDRIXA_PG_DSN[_FILE], MEDRIXA_LEASE_TTL_SECONDS, "
                                  "MEDRIXA_ALLOWED_HOSTS, MEDRIXA_AUTH_MODE, MEDRIXA_OIDC_*, MEDRIXA_RATE_LIMIT_*, "
-                                 "MEDRIXA_MAX_ACTIVE_RUNS)") from None
+                                 "MEDRIXA_MAX_ACTIVE_RUNS, MEDRIXA_PG_POOL_SIZE)") from None

@@ -7,6 +7,7 @@ request id, no-store/nosniff/CSP headers, OpenAPI UI only in ``development``.
 import json
 import re
 import uuid
+from contextlib import asynccontextmanager
 from typing import Annotated, Any
 
 from fastapi import FastAPI, Path, Request
@@ -59,8 +60,9 @@ def create_app(settings: Settings, repository: StateRepository | None = None,
         if settings.postgres_dsn is not None:
             from app.persistence.postgres import PostgresRunLeases, PostgresStateRepository
             dsn = settings.postgres_dsn.get_secret_value()
-            repository = PostgresStateRepository(dsn, migrate=settings.postgres_migrate)
-            leases = leases or PostgresRunLeases(dsn, migrate=settings.postgres_migrate)
+            repository = PostgresStateRepository(dsn, migrate=settings.postgres_migrate,
+                                                 pool_size=settings.postgres_pool_size)
+            leases = leases or PostgresRunLeases(dsn, migrate=settings.postgres_migrate, repository=repository)
         elif settings.store_dir is not None:
             from app.persistence.leases import LocalFileRunLeases
             from app.persistence.local_file import ProvisionalLocalFileRepository
@@ -89,7 +91,18 @@ def create_app(settings: Settings, repository: StateRepository | None = None,
     subject_limiter: RateLimiter = TokenBucketLimiter(settings.rate_limit_subject_per_minute)
     allowed_hosts = frozenset(settings.allowed_hosts)
 
-    app = FastAPI(title="MEDRIXA AI — local API (provisional)", version=API_VERSION,
+    owned_repository = repository
+
+    @asynccontextmanager
+    async def lifespan(_app: FastAPI):
+        try:
+            yield
+        finally:
+            close = getattr(owned_repository, "close", None)
+            if callable(close):
+                close()  # P7.6: release pooled database connections on shutdown
+
+    app = FastAPI(title="MEDRIXA AI — local API (provisional)", version=API_VERSION, lifespan=lifespan,
                   description="Local synthetic-data simulator. Not a medical device; no clinical validation. "
                               "All results require human review.",
                   docs_url="/docs" if settings.expose_docs else None, redoc_url=None,

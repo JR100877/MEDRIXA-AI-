@@ -106,21 +106,46 @@ def _sha(text: str) -> str:
 class PostgresStateRepository(StateRepository):
     adapter_name = ADAPTER_NAME
 
-    def __init__(self, dsn: str, *, migrate: bool = True, connect_timeout: int = 5, verify: bool = True):
+    def __init__(self, dsn: str, *, migrate: bool = True, connect_timeout: int = 5, verify: bool = True,
+                 pool_size: int = 0):
         """``migrate=True`` (development/test default) applies migrations with this DSN's role.
         With least privilege (P7.4) the application role cannot migrate: pass
-        ``migrate=False`` and the schema version is verified instead (fail closed)."""
+        ``migrate=False`` and the schema version is verified instead (fail closed).
+        ``pool_size > 0`` (P7.6) reuses connections through ``psycopg_pool``; 0 opens one
+        connection per operation. Call ``close()`` when done with a pooled repository."""
         try:
             import psycopg
         except ImportError:  # pragma: no cover - exercised only without the optional extra
             raise RepositoryError("psycopg is not installed (requirements-postgres.txt)") from None
+        if type(pool_size) is not int or not 0 <= pool_size <= 100:
+            raise ValueError("pool_size must be an integer between 0 and 100")
         self._psycopg = psycopg
         self._dsn = dsn
         self._connect_timeout = connect_timeout
-        if migrate:
-            self.migrate()
-        elif verify:
-            self.require_schema(1)
+        self._pool = None
+        if pool_size:
+            try:
+                from psycopg_pool import ConnectionPool
+            except ImportError:  # pragma: no cover
+                raise RepositoryError("psycopg-pool is not installed (requirements-postgres.txt)") from None
+            # check_connection: one cheap round trip so a connection broken by a database
+            # restart is replaced instead of failing the next request.
+            self._pool = ConnectionPool(dsn, min_size=1, max_size=pool_size, open=True, timeout=connect_timeout,
+                                        kwargs={"connect_timeout": connect_timeout, "autocommit": False},
+                                        check=ConnectionPool.check_connection, name="medrixa")
+        try:
+            if migrate:
+                self.migrate()
+            elif verify:
+                self.require_schema(1)
+        except BaseException:
+            self.close()  # never leave pool worker threads reconnecting after a failed start
+            raise
+
+    def close(self) -> None:
+        pool, self._pool = self._pool, None
+        if pool is not None:
+            pool.close()
 
     def schema_version(self) -> int:
         def read(cursor):
@@ -146,20 +171,26 @@ class PostgresStateRepository(StateRepository):
             raise StoreUnavailable("database unavailable") from None
 
     def _run(self, operation):
-        """Execute ``operation(cursor)`` in one transaction; map driver errors."""
-        connection = self._connect()
+        """Execute ``operation(cursor)`` in one transaction (commit on success, rollback on
+        any exception); map driver errors. Pooled or one connection per operation."""
         try:
-            with connection:
-                with connection.cursor() as cursor:
-                    return operation(cursor)
+            if self._pool is not None:
+                with self._pool.connection(timeout=self._connect_timeout) as connection:
+                    with connection.cursor() as cursor:
+                        return operation(cursor)
+            connection = self._connect()
+            try:
+                with connection:
+                    with connection.cursor() as cursor:
+                        return operation(cursor)
+            finally:
+                connection.close()
         except RepositoryError:
             raise
         except self._psycopg.errors.UniqueViolation:
             raise DuplicateRun("run already exists") from None
-        except self._psycopg.Error:
+        except self._psycopg.Error:  # includes psycopg_pool.PoolTimeout
             raise StoreUnavailable("database operation failed") from None
-        finally:
-            connection.close()
 
     def migrate(self) -> int:
         def apply(cursor):
@@ -290,9 +321,12 @@ class PostgresRunLeases(RunLeases):
     _LIVE = ("SELECT run_id, owner, epoch, expires_at FROM medrixa_run_leases "
              "WHERE run_id = %s AND expires_at > clock_timestamp()")
 
-    def __init__(self, dsn: str, *, migrate: bool = True, connect_timeout: int = 5):
+    def __init__(self, dsn: str, *, migrate: bool = True, connect_timeout: int = 5,
+                 repository: "PostgresStateRepository | None" = None):
         # Reuses the repository's connection handling and error mapping (never leaks the DSN).
-        self._db = PostgresStateRepository(dsn, migrate=False, connect_timeout=connect_timeout, verify=False)
+        # ``repository`` (P7.6) shares its connection pool instead of opening another.
+        self._db = repository or PostgresStateRepository(dsn, migrate=False, connect_timeout=connect_timeout,
+                                                         verify=False)
         if migrate:
             self.migrate()
         else:
