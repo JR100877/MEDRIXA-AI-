@@ -53,9 +53,12 @@ class Lease(Contract):
 
 
 def check_ttl(ttl_seconds: object) -> float:
-    if type(ttl_seconds) not in (int, float) or not MIN_TTL_SECONDS <= ttl_seconds <= MAX_TTL_SECONDS:
+    if type(ttl_seconds) not in (int, float):  # bool and numeric strings rejected
         raise ValueError("lease ttl out of range")
-    return float(ttl_seconds)
+    ttl = float(ttl_seconds)  # type: ignore[arg-type]  # narrowed to int|float above
+    if not MIN_TTL_SECONDS <= ttl <= MAX_TTL_SECONDS:  # also rejects NaN
+        raise ValueError("lease ttl out of range")
+    return ttl
 
 
 def check_ids(run_id: object, owner: object) -> tuple[str, str]:

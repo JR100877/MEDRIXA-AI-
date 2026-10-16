@@ -42,7 +42,7 @@ def recover_interrupted_runs(repository: StateRepository, leases=None) -> Recove
     moved, not_started, active = [], [], []
     terminal = corrupt = 0
     for entry in repository.scan():
-        if not entry.readable:
+        if not entry.readable or entry.run_id is None:
             corrupt += 1
             continue
         try:

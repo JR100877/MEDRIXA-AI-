@@ -16,7 +16,7 @@ import json
 import re
 import time
 from abc import ABC, abstractmethod
-from typing import Annotated, Literal
+from typing import Annotated, Final, Literal
 
 from pydantic import Field, ValidationError, model_validator
 
@@ -24,8 +24,8 @@ from app.models.contracts import Contract, Identifier
 from app.web.policy import Role
 
 TOKEN_PREFIX = "mdx1"  # noqa: S105 - format marker, not a credential
-ISSUER = "medrixa-local-dev"
-AUDIENCE = "medrixa-api-v1"
+ISSUER: Final = "medrixa-local-dev"
+AUDIENCE: Final = "medrixa-api-v1"
 MAX_TOKEN_CHARS = 4096
 _B64URL = re.compile(r"^[A-Za-z0-9_-]+$")
 

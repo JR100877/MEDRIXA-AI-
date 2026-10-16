@@ -3,9 +3,9 @@
 Public messages are constant strings: no input, exception text, path, stack
 trace or identifier other than the server request id is ever returned.
 """
-from app.web.contracts import ErrorBody, ErrorResponse
+from app.web.contracts import ErrorBody, ErrorCode, ErrorResponse
 
-CATALOGUE: dict[str, tuple[int, str]] = {
+CATALOGUE: dict[ErrorCode, tuple[int, str]] = {
     "INVALID_INPUT": (400, "The request is invalid."),
     "IDEMPOTENCY_KEY_REQUIRED": (400, "A valid Idempotency-Key header is required."),
     "UNAUTHENTICATED": (401, "Authentication is required."),
@@ -27,14 +27,13 @@ CATALOGUE: dict[str, tuple[int, str]] = {
 
 class ApiError(Exception):
     def __init__(self, code: str):
-        if code not in CATALOGUE:
-            code = "INTERNAL_ERROR"
-        super().__init__(code)
-        self.code = code
-        self.status, self.message = CATALOGUE[code]
+        known: ErrorCode = code if code in CATALOGUE else "INTERNAL_ERROR"
+        super().__init__(known)
+        self.code: ErrorCode = known
+        self.status, self.message = CATALOGUE[known]
 
 
-def error_payload(code: str, request_id: str) -> tuple[int, dict]:
+def error_payload(code: ErrorCode, request_id: str) -> tuple[int, dict]:
     status, message = CATALOGUE[code]
     body = ErrorResponse(error=ErrorBody(code=code, message=message, request_id=request_id))
     return status, body.model_dump(mode="json")

@@ -44,7 +44,8 @@ class Orchestrator:
                 except Exception:
                     return self._review(manager, "INVALID_PLAN")
                 if plan.action != "execute":
-                    return self._review(manager, plan.reason)
+                    # Plan's validator guarantees a reason here; the guard keeps typing honest.
+                    return self._review(manager, plan.reason or "INVALID_PLAN")
                 if step_number == self.limits.max_steps:
                     return self._review(manager, "STEP_LIMIT")
                 if any(m.step == plan.step for m in state.messages):

@@ -116,4 +116,4 @@ class StateRepository(ABC):
     def list_runs(self, case_id: str | None = None) -> tuple[str, ...]:
         """Readable run ids, optionally restricted to one case."""
         return tuple(sorted(e.run_id for e in self.scan()
-                            if e.readable and (case_id is None or e.case_id == case_id)))
+                            if e.readable and e.run_id is not None and (case_id is None or e.case_id == case_id)))

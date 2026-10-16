@@ -61,13 +61,16 @@ class LoggingAuditSink(AuditSink):
                                      separators=(",", ":"), sort_keys=True))
 
 
+class _AuditHandler(logging.StreamHandler):
+    """Marker type so repeated configuration never duplicates audit lines."""
+
+
 def configure_audit_logging(stream=None) -> logging.Logger:
     """Dedicated JSON-lines handler (stderr by default); no propagation to root."""
     logger = logging.getLogger("medrixa.audit")
-    if not any(getattr(h, "_medrixa_audit", False) for h in logger.handlers):
-        handler = logging.StreamHandler(stream)
+    if not any(isinstance(h, _AuditHandler) for h in logger.handlers):
+        handler = _AuditHandler(stream)
         handler.setFormatter(logging.Formatter("%(message)s"))
-        handler._medrixa_audit = True
         logger.addHandler(handler)
     logger.setLevel(logging.INFO)
     logger.propagate = False

@@ -5,3 +5,5 @@ httpx==0.28.1
 uvicorn==0.53.0
 # Static analysis used in P4b
 ruff==0.16.8
+# Static analysis used since P7
+mypy==2.4.0

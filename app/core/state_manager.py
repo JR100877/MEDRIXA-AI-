@@ -2,7 +2,7 @@
 from datetime import datetime, timezone
 from threading import RLock
 
-from app.core.state import AuditEvent, State
+from app.core.state import AuditEvent, EventKind, State
 from app.models.contracts import AgentMessage, AgentResult, ClinicalCase, StopCode
 
 
@@ -34,7 +34,7 @@ class StateManager:
             raise InvalidTransition("operation not permitted in current state")
         return self._state
 
-    def _commit(self, kind: str, *, message_id: str | None = None, reason: StopCode | None = None, **changes: object) -> State:
+    def _commit(self, kind: EventKind, *, message_id: str | None = None, reason: StopCode | None = None, **changes: object) -> State:
         current = self._state
         event = AuditEvent(sequence=current.revision + 1, case_id=current.case.case_id,
                            run_id=current.run_id, kind=kind, at=datetime.now(timezone.utc),

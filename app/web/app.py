@@ -7,7 +7,7 @@ request id, no-store/nosniff/CSP headers, OpenAPI UI only in ``development``.
 import json
 import re
 import uuid
-from typing import Annotated
+from typing import Annotated, Any
 
 from fastapi import FastAPI, Path, Request
 from fastapi.encoders import jsonable_encoder
@@ -23,7 +23,7 @@ from app.persistence.repository import StateRepository
 from app.web import API_VERSION
 from app.web.audit import AuditSink, LoggingAuditSink
 from app.web.auth import AuthenticationFailed, Authenticator, HmacTokenAuthenticator, Principal
-from app.web.contracts import (CreateRunRequest, ErrorResponse, HealthView, RecoveryView, RunEventsView,
+from app.web.contracts import (CreateRunRequest, ErrorCode, ErrorResponse, HealthView, RecoveryView, RunEventsView,
                                RunView)
 from app.web.errors import ApiError, error_payload
 from app.web.service import IDEMPOTENCY_KEY, RunService
@@ -38,7 +38,7 @@ _SECURITY_HEADERS = {
 }
 _API_CSP = "default-src 'none'; frame-ancestors 'none'"
 _DOC_PATHS = {"/docs", "/docs/oauth2-redirect", "/openapi.json"}
-_STATUS_CODES = {404: "NOT_FOUND", 405: "METHOD_NOT_ALLOWED", 413: "PAYLOAD_TOO_LARGE",
+_STATUS_CODES: dict[int, ErrorCode] = {404: "NOT_FOUND", 405: "METHOD_NOT_ALLOWED", 413: "PAYLOAD_TOO_LARGE",
                  415: "UNSUPPORTED_MEDIA_TYPE", 401: "UNAUTHENTICATED", 403: "FORBIDDEN"}
 
 
@@ -87,7 +87,7 @@ def create_app(settings: Settings, repository: StateRepository | None = None,
     def request_id_of(request: Request) -> str:
         return getattr(request.state, "request_id", None) or uuid.uuid4().hex
 
-    def error_response(request: Request, code: str) -> JSONResponse:
+    def error_response(request: Request, code: ErrorCode) -> JSONResponse:
         status, body = error_payload(code, request_id_of(request))
         headers = {"WWW-Authenticate": 'Bearer realm="medrixa"'} if status == 401 else None
         return JSONResponse(body, status_code=status, headers=headers)
@@ -144,7 +144,7 @@ def create_app(settings: Settings, repository: StateRepository | None = None,
                 raise ApiError("PAYLOAD_TOO_LARGE")
         return bytes(body)
 
-    bearer = {"security": [{"bearerAuth": []}]}
+    bearer: dict[str, Any] = {"security": [{"bearerAuth": []}]}
 
     @app.get("/v1/health", response_model=HealthView, tags=["system"])
     async def health() -> JSONResponse:
@@ -219,5 +219,5 @@ def create_app(settings: Settings, repository: StateRepository | None = None,
         app.openapi_schema = jsonable_encoder(schema)
         return app.openapi_schema
 
-    app.openapi = openapi_schema
+    app.openapi = openapi_schema  # type: ignore[method-assign]  # FastAPI's documented customisation hook
     return app

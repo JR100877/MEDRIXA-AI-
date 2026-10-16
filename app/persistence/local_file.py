@@ -21,19 +21,22 @@ import os
 import re
 from contextlib import contextmanager
 from pathlib import Path
+from typing import Any
 from uuid import uuid4
-
-try:  # POSIX
-    import fcntl
-except ImportError:  # pragma: no cover - Windows path is untested
-    fcntl = None
-    import msvcrt
 
 from pydantic import ValidationError
 
 from app.core.state import State
 from app.persistence.repository import (CorruptRecord, DuplicateRun, RunIndexEntry, RunNotFound, StateRepository,
                                         check_new_run, check_successor, validate_run_id)
+
+fcntl: Any
+msvcrt: Any
+try:  # POSIX
+    import fcntl
+except ImportError:  # pragma: no cover - Windows path is untested
+    fcntl = None
+    import msvcrt
 
 RECORD_FORMAT = "medrixa.local-run-record.v1"
 ADAPTER_NAME = "provisional-local-file"

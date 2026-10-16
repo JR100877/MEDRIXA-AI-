@@ -22,6 +22,7 @@ def main(argv=None) -> int:
         print('{"error":"INVALID_INPUT"}', file=sys.stderr)
         return 2
     repository = None
+    leases = None
     if args.store is not None:
         # Imported lazily: the in-memory default path does not touch the filesystem.
         from app.persistence.leases import LocalFileRunLeases
@@ -34,6 +35,8 @@ def main(argv=None) -> int:
             return 2
     if args.recover:
         from app.persistence.recovery import recover_interrupted_runs
+        if repository is None:  # unreachable: --recover requires --store (checked above)
+            return 2
         report = summarize_recovery(recover_interrupted_runs(repository, leases))
         print(report.public_json(indent=2))
         return 0 if report.corrupt_records == 0 else 1
@@ -46,7 +49,7 @@ def main(argv=None) -> int:
     except (InputRejected, OSError):
         print('{"error":"INVALID_INPUT"}', file=sys.stderr)
         return 2
-    if repository is None:
+    if repository is None or leases is None:
         state = asyncio.run(create_runner().run(StateManager(case)))
     else:
         from app.persistence.leases import LeaseHeld, LeaseLost

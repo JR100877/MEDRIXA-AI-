@@ -31,7 +31,7 @@ class OutOfScope(Exception):
 
 
 def permissions_of(principal) -> frozenset[str]:
-    granted = set()
+    granted: set[str] = set()
     for role in principal.roles:
         granted |= ROLE_PERMISSIONS.get(role, frozenset())  # unknown role grants nothing
     return frozenset(granted)

@@ -109,7 +109,7 @@ class AdverseTests(unittest.TestCase):
         import io
         import json
         import logging
-        from app.web.audit import LoggingAuditSink, configure_audit_logging
+        from app.web.audit import LoggingAuditSink, _AuditHandler, configure_audit_logging
         silent = logging.getLogger(f"medrixa.audit.unconfigured.{secrets.token_hex(4)}")
         silent.propagate = False
         repo = InMemoryStateRepository()
@@ -119,7 +119,7 @@ class AdverseTests(unittest.TestCase):
         stream = io.StringIO()
         logger = configure_audit_logging(stream)
         self.addCleanup(lambda: [logger.removeHandler(h) for h in list(logger.handlers)
-                                 if getattr(h, "_medrixa_audit", False)])
+                                 if isinstance(h, _AuditHandler)])
         api = Api(audit=LoggingAuditSink(logger))
         self.assertEqual(api.create().status_code, 201)
         lines = [json.loads(line) for line in stream.getvalue().splitlines()]

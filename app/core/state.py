@@ -6,12 +6,14 @@ from pydantic import Field, model_validator
 
 from app.models.contracts import AgentMessage, AgentResult, ClinicalCase, Contract, Identifier, StopCode, new_id
 
+EventKind = Literal["RUN_STARTED", "AGENT_DISPATCHED", "RESULT_ACCEPTED", "REVIEW_REQUESTED"]
+
 
 class AuditEvent(Contract):
     sequence: Annotated[int, Field(ge=1)]
     case_id: Identifier
     run_id: Identifier
-    kind: Literal["RUN_STARTED", "AGENT_DISPATCHED", "RESULT_ACCEPTED", "REVIEW_REQUESTED"]
+    kind: EventKind
     at: datetime
     message_id: Identifier | None = None
     reason: StopCode | None = None
