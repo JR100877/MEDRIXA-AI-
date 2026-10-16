@@ -227,6 +227,7 @@ class PostgresConfigurationTests(unittest.TestCase):
         from app.web.settings import Settings
         app = create_app(Settings(environment="test", auth_secret=self.SECRET, postgres_dsn=fresh_database_dsn()),
                          audit=MemoryAuditSink())
+        self.addCleanup(app.state.service.repository.close)  # the app owns a connection pool (P7.6)
         self.assertIsInstance(app.state.service.repository, PostgresStateRepository)
 
 

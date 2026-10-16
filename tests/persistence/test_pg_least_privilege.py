@@ -162,7 +162,9 @@ class AdminCliTests(unittest.TestCase):
         secret = "least-privilege-http-secret-0123456789-abcdef"
         settings = Settings(environment="test", auth_secret=secret, postgres_dsn=as_role(owner, role),
                             postgres_migrate=False, allowed_hosts=("testserver",))
-        client = TestClient(create_app(settings, audit=MemoryAuditSink()))
+        app = create_app(settings, audit=MemoryAuditSink())
+        self.addCleanup(app.state.service.repository.close)  # the app owns a connection pool (P7.6)
+        client = TestClient(app)
         headers = {"Authorization": f"Bearer {issue_token(secret, 'u1', ['case_runner'], ['case-a'])}",
                    "Idempotency-Key": "least-priv-key-000001"}
         response = client.post("/v1/runs", json=case_body(), headers=headers)
