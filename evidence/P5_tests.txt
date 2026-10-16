@@ -1,0 +1,35 @@
+test_app_uses_postgres_when_configured (tests.persistence.test_postgres.PostgresConfigurationTests.test_app_uses_postgres_when_configured) ... ok
+test_dsn_is_secret_and_stores_are_exclusive (tests.persistence.test_postgres.PostgresConfigurationTests.test_dsn_is_secret_and_stores_are_exclusive) ... ok
+test_concurrent_duplicates_and_restart_replay (tests.persistence.test_postgres.PostgresHttpTests.test_concurrent_duplicates_and_restart_replay) ... /usr/local/lib/python3.13/dist-packages/starlette/testclient.py:53: DeprecationWarning: The anyio.abc.BlockingPortal alias is deprecated, use anyio.from_thread.BlockingPortal instead.
+  _PortalFactoryType = Callable[[], AbstractContextManager[anyio.abc.BlockingPortal]]
+Executing <Task pending name='Task-2' coro=<PostgresHttpTests.test_concurrent_duplicates_and_restart_replay() running at /home/claude/medrixa-ai-/tests/persistence/test_postgres.py:196> wait_for=<Future pending cb=[Task.task_wakeup()] created at /usr/lib/python3.13/asyncio/base_events.py:460> cb=[_run_until_complete_cb() at /usr/lib/python3.13/asyncio/base_events.py:181] created at /usr/lib/python3.13/asyncio/runners.py:101> took 0.190 seconds
+ok
+test_killed_run_recovered_from_postgres (tests.persistence.test_postgres.PostgresProcessRestartTests.test_killed_run_recovered_from_postgres) ... ok
+test_recovery_policy_on_postgres (tests.persistence.test_postgres.PostgresRecoveryTests.test_recovery_policy_on_postgres) ... ok
+test_case_isolation_under_concurrent_runs (tests.persistence.test_postgres.PostgresRepositoryContractTests.test_case_isolation_under_concurrent_runs) ... ok
+test_concurrent_writers_single_winner (tests.persistence.test_postgres.PostgresRepositoryContractTests.test_concurrent_writers_single_winner) ... ok
+test_create_and_load_round_trip (tests.persistence.test_postgres.PostgresRepositoryContractTests.test_create_and_load_round_trip) ... ok
+test_create_requires_new_run (tests.persistence.test_postgres.PostgresRepositoryContractTests.test_create_requires_new_run) ... ok
+test_cross_case_write_rejected (tests.persistence.test_postgres.PostgresRepositoryContractTests.test_cross_case_write_rejected) ... ok
+test_duplicate_run_rejected_original_kept (tests.persistence.test_postgres.PostgresRepositoryContractTests.test_duplicate_run_rejected_original_kept) ... ok
+test_every_transition_persisted_before_publish (tests.persistence.test_postgres.PostgresRepositoryContractTests.test_every_transition_persisted_before_publish) ... ok
+test_exactly_one_transition_per_save (tests.persistence.test_postgres.PostgresRepositoryContractTests.test_exactly_one_transition_per_save) ... ok
+test_failed_write_keeps_memory_and_store (tests.persistence.test_postgres.PostgresRepositoryContractTests.test_failed_write_keeps_memory_and_store) ... ok
+test_foreign_writer_conflict_is_not_overwritten (tests.persistence.test_postgres.PostgresRepositoryContractTests.test_foreign_writer_conflict_is_not_overwritten) ... ok
+test_history_rewrite_rejected (tests.persistence.test_postgres.PostgresRepositoryContractTests.test_history_rewrite_rejected) ... ok
+test_missing_and_invalid_run_ids (tests.persistence.test_postgres.PostgresRepositoryContractTests.test_missing_and_invalid_run_ids) ... ok
+test_result_never_accepted_twice_across_resume (tests.persistence.test_postgres.PostgresRepositoryContractTests.test_result_never_accepted_twice_across_resume) ... ok
+test_stale_revision_rejected_without_change (tests.persistence.test_postgres.PostgresRepositoryContractTests.test_stale_revision_rejected_without_change) ... ok
+test_terminal_run_is_immutable (tests.persistence.test_postgres.PostgresRepositoryContractTests.test_terminal_run_is_immutable) ... ok
+test_event_rows_disagreeing_with_snapshot_are_detected (tests.persistence.test_postgres.PostgresSpecificTests.test_event_rows_disagreeing_with_snapshot_are_detected) ... ok
+test_event_table_is_append_only_in_the_database (tests.persistence.test_postgres.PostgresSpecificTests.test_event_table_is_append_only_in_the_database) ... ok
+test_hostile_run_ids_are_rejected_before_sql (tests.persistence.test_postgres.PostgresSpecificTests.test_hostile_run_ids_are_rejected_before_sql) ... ok
+test_migration_is_idempotent_and_versioned (tests.persistence.test_postgres.PostgresSpecificTests.test_migration_is_idempotent_and_versioned) ... ok
+test_multiprocess_writers_single_winner (tests.persistence.test_postgres.PostgresSpecificTests.test_multiprocess_writers_single_winner) ... ok
+test_tampering_is_detected_on_read (tests.persistence.test_postgres.PostgresSpecificTests.test_tampering_is_detected_on_read) ... ok
+test_unavailable_database_never_leaks_dsn (tests.persistence.test_postgres.PostgresSpecificTests.test_unavailable_database_never_leaks_dsn) ... ok
+
+----------------------------------------------------------------------
+Ran 27 tests in 10.418s
+
+OK

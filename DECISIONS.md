@@ -64,3 +64,11 @@ Tres roles explícitos; ningún permiso de aprobación clínica existe. Permisos
 ## ADR-015 — Errores uniformes y auditoría de accesos que falla cerrada
 
 Catálogo fijo de códigos y mensajes; manejadores propios reemplazan el 422 de FastAPI (que repite la entrada). La auditoría de mutaciones ocurre antes de los efectos; si el sink no puede registrar (incluido un logger sin configurar, hallado en la prueba con servidor real), la operación se rechaza con 503.
+
+## ADR-016 — Adaptador PostgreSQL con instantánea canónica en texto y eventos append-only (P5)
+
+`PostgresStateRepository` implementa el puerto sin cambiarlo y pasa la suite de contrato de P4 sin modificaciones. La instantánea se guarda como texto JSON canónico con SHA-256 (JSONB renormaliza números); columnas indexadas y tabla de eventos se verifican contra la instantánea en cada lectura. Los eventos son append-only en la base (triggers contra UPDATE/DELETE/TRUNCATE), mejora respecto al adaptador de archivos. Migración v1 idempotente, no destructiva, bajo advisory lock. `psycopg` 3.3.6 es dependencia opcional; el núcleo no la importa. Sin pool de conexiones ni driver asíncrono (pendiente).
+
+## ADR-017 — Pruebas contra PostgreSQL real efímero, nunca simulado
+
+Las pruebas crean un clúster local temporal (socket Unix privado, sin TCP, autenticación `peer`, rol no superusuario) y una base nueva por prueba; se destruye al salir. Sin servidor disponible las pruebas se omiten explícitamente. No se usan bases compartidas, gestionadas ni con datos reales.

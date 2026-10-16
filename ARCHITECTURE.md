@@ -56,7 +56,7 @@ Los esquemas no representan endpoints activos. Esta línea no incorpora IoT. El 
 Orchestrator ──► PersistentStateManager ──save(CAS)──► StateRepository (puerto)
                    (persistir, luego publicar)              ├─ InMemoryStateRepository       [provisional, pruebas]
                                                             ├─ ProvisionalLocalFileRepository [provisional, un equipo]
-recover_interrupted_runs ──scan/load/save──────────────────►└─ PostgreSQL                      [destino previsto, NO implementado]
+recover_interrupted_runs ──scan/load/save──────────────────►└─ PostgresStateRepository        [P5, probado con PostgreSQL 16 real]
 ```
 
 El Orchestrator no cambió: usa el gestor persistente igual que el gestor en memoria. Un `RevisionConflict` hereda de `StateConflict` y se relanza sin sobrescribir. Las ejecuciones sobreviven al reinicio del proceso con el adaptador local. Lo interrumpido termina en revisión humana (`INTERRUPTED`) sin reejecutar agentes. Detalle y diseño PostgreSQL en `docs/PERSISTENCE.md`.
@@ -84,3 +84,11 @@ FastAPI solo traduce. Las reglas viven en `RunService`, que puede reutilizarse e
 | Interface | API HTTP local v1 con 5 endpoints, OpenAPI y CLI de servidor local | Frontend; ejecución en segundo plano |
 | Security | AuthN por puerto, AuthZ por rol y caso, auditoría de accesos, límites, cabeceras y configuración segura | OIDC/IdP, rotación y revocación, limitación de tasa, TLS (P7) |
 | Observability | Auditoría de accesos en líneas JSON con `request_id` | Métricas y trazas (P8) |
+
+## Persistencia PostgreSQL (P5)
+
+`PostgresStateRepository` es el tercer adaptador del mismo puerto. El CORE, el servicio HTTP y la recuperación no cambiaron: se selecciona por configuración (`MEDRIXA_PG_DSN`). Los eventos solo admiten añadir y lo garantiza la base de datos. Las lecturas verifican la instantánea contra las columnas y la tabla de eventos. Detalle en `docs/PERSISTENCE.md`.
+
+| Área | Tras P5 | Pendiente |
+|---|---|---|
+| CORE / persistencia | PostgreSQL probado contra la suite de contrato, recuperación con SIGKILL e idempotencia HTTP | Pool de conexiones, driver asíncrono, roles de mínimo privilegio, respaldos, arrendamiento de ejecuciones (P6) |

@@ -67,6 +67,7 @@ Todos los errores usan el mismo sobre: `{"api_version":"medrixa.http.v1","error"
 
 ## Seguridad por defecto
 
+- **Almacén:** se elige con `MEDRIXA_PG_DSN` (PostgreSQL, P5, tratado como secreto) o `MEDRIXA_STORE_DIR` (archivos provisional), que son excluyentes. Sin ninguno, se usa memoria.
 - **Configuración solo desde `MEDRIXA_*`.** `MEDRIXA_ENV` debe ser `development` o `test`; `production` se rechaza. `MEDRIXA_AUTH_SECRET` es obligatorio, de al menos 32 bytes y no trivial, y nunca se imprime.
 - **Lista de hosts permitidos:** `127.0.0.1` y `localhost`, sin comodines. `serve` se liga solo a 127.0.0.1, sin cabecera `Server` y sin confiar en cabeceras de proxy.
 - **Límites de entrada:**

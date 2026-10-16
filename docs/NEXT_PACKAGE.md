@@ -1,28 +1,32 @@
-# P5 — siguiente paquete exacto (propuesta de planificación, no fase aprobada)
+# P6 — siguiente paquete exacto (propuesta de planificación, no fase aprobada)
 
-Base: P4b en la rama `dev/p4b-http`, publicada y sin fusionar. Ver `CONTINUITY.json`.
+Base: P5 en la rama `dev/p5-postgres`, publicada y sin fusionar. Ver `CONTINUITY.json`.
 
 ## Objetivo
 
-Crear un adaptador PostgreSQL de `StateRepository` que pase **sin cambios** la suite `tests/persistence/test_repository_contract.py`, conservando los adaptadores provisionales y el comportamiento de P4 y P4b.
+Que la recuperación pueda ejecutarse **con ejecutores vivos en otros procesos** sin interrumpirlos. Hoy la recuperación debe correr sin ejecutores activos, y `RUNS_ACTIVE` solo protege al propio proceso.
 
-## Recursos verificados
+## Diseño propuesto
 
-PostgreSQL 16 ya está instalado en el entorno de desarrollo (`/usr/lib/postgresql/16`) y `psycopg` 3.3.6 está disponible en PyPI. Se usará un clúster efímero local, creado y destruido por las pruebas. No implica servicios gestionados, costos ni credenciales reales.
+1. **Puerto `RunLeases`, separado de `StateRepository`:** `acquire(run_id, owner, ttl)`, `renew(run_id, owner, epoch)` y `release(run_id, owner, epoch)`. Los adaptadores serían en memoria, archivo y PostgreSQL (tabla `medrixa_run_leases` con `epoch` monótono).
+2. **Token de cercado (fencing):** cada transición persistida lleva el `epoch` del arrendamiento vigente, y un ejecutor con un arrendamiento vencido no puede escribir. Hay que decidir si va dentro del CAS del repositorio (cambio aditivo del puerto) o como comprobación previa en `PersistentStateManager`.
+3. **Ejecutor:** latido periódico mientras un agente está en vuelo. Si la renovación falla, la ejecución se detiene y queda para recuperación; nunca se reintenta automáticamente.
+4. **Recuperación:** solo toca ejecuciones `running` sin arrendamiento o con el arrendamiento vencido. Las que tienen arrendamiento vivo se informan como `active_elsewhere`.
+5. **Relojes:** las expiraciones se calculan con la hora de la base de datos en PostgreSQL. En archivos, el arrendamiento queda limitado a un solo equipo, y se documenta.
 
-## Orden de ejecución
+## Pruebas
 
-1. Esquema `runs` (instantánea JSONB, revisión, estado, caso) y `run_events` (PK `(run_id, sequence)`), con migración idempotente no destructiva.
-2. `save`: una transacción con `UPDATE … WHERE run_id AND revision = esperada`; 0 filas → `RevisionConflict`. `check_successor` se valida en la aplicación con el registro bloqueado (`SELECT … FOR UPDATE`).
-3. `create`: `INSERT`; una violación de PK → `DuplicateRun`.
-4. Revalidar el JSONB en cada lectura: un registro inconsistente → `CorruptRecord`.
-5. Ejecutar la suite de contrato, recuperación, idempotencia HTTP y concurrencia multiproceso contra PostgreSQL.
-6. Documentar la configuración: DSN solo por entorno, nunca en el repositorio.
+Las pruebas serán de contrato, iguales para los tres adaptadores:
+- Dos procesos compiten por un arrendamiento.
+- Un arrendamiento vencido se puede tomar.
+- Un ejecutor cercado no puede escribir.
+- La recuperación respeta los arrendamientos vivos.
+- Un proceso terminado con SIGKILL se recupera solo tras vencer su arrendamiento.
 
-## Criterio de aceptación
+## Decisiones humanas pendientes
 
-La suite de contrato pasa idéntica en los tres adaptadores. La recuperación y la idempotencia HTTP funcionan con PostgreSQL. Si no hay servidor disponible, esas pruebas se **omiten de forma explícita** y nunca se declaran aprobadas. Sin datos reales ni infraestructura externa.
+TTL y periodo de latido por defecto, y si la aplicación HTTP debe ejecutar la recuperación automáticamente al arrancar.
 
-## Condiciones de aprobación
+## Condiciones
 
-Requieren autorización de Robinson: fusionar cualquier rama, PostgreSQL gestionado o con costos, despliegue y migraciones destructivas.
+Sin cambios incompatibles en contratos publicados. Fusionar ramas, usar infraestructura gestionada o desplegar requiere autorización.

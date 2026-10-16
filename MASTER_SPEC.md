@@ -31,6 +31,10 @@ Fuente rectora: autorización de dirección autónoma de ingeniería de Robinson
 
 Sigue prohibido: fusionar a la rama predeterminada, reescribir commits publicados, hacer force push, usar datos reales, desplegar en producción, tomar decisiones clínicas autónomas, cambiar la visibilidad del repositorio y declarar validación clínica.
 
+## Requisitos P5 (misma autorización; identificador propuesto, no fase aprobada)
+
+- R19: adaptador PostgreSQL compatible con `StateRepository`, que pase sin cambios la suite de contrato. Se prueba solo contra PostgreSQL local efímero; ninguna base gestionada, compartida ni con datos reales.
+
 ## Exclusiones del incremento
 
 Autenticación productiva, cifrado persistente, aislamiento de código no confiable, validación clínica, regulación, FHIR conforme, modelos LLM/ML y bases de conocimiento médicas. No se declararán implementados.

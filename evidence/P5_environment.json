@@ -1,0 +1,11 @@
+{
+  "package": "P5",
+  "python": "3.13.16",
+  "platform": "Linux-6.18.44-fc-v139-x86_64-with-glibc2.39",
+  "postgresql_server": "16.15 (Ubuntu 16.15-0ubuntu0.24.04.1), system binaries /usr/lib/postgresql/16/bin",
+  "postgresql_test_cluster": "ephemeral per test process: initdb in private temp dir, Unix socket only (listen_addresses=''), peer auth, non-superuser LOGIN CREATEDB role, removed at exit",
+  "driver": {"psycopg": "3.3.6", "psycopg-binary": "3.3.6", "libpq": "180006"},
+  "installed_in_session": ["psycopg[binary]==3.3.6"],
+  "network_used": false,
+  "managed_or_shared_database_used": false
+}

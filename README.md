@@ -68,4 +68,15 @@ python -m app.web serve --port 8000               # solo 127.0.0.1; OpenAPI en /
 
 Con autenticación HMAC **provisional** (no es un proveedor de identidad), autorización por caso, `Idempotency-Key` obligatoria y errores uniformes. Ver `docs/HTTP_API.md`.
 
+## PostgreSQL (P5, rama `dev/p5-postgres`)
+
+```bash
+python -m pip install -r requirements-postgres.txt   # psycopg 3.3.6 (opcional)
+export MEDRIXA_PG_DSN="host=/ruta/socket dbname=medrixa"   # secreto; excluyente con MEDRIXA_STORE_DIR
+python -m app.web serve                               # la migración v1 se aplica de forma idempotente
+python -m unittest tests.persistence.test_postgres    # crea un PostgreSQL efímero local si hay binarios
+```
+
+Si no hay PostgreSQL disponible, esas pruebas se omiten; nunca se dan por aprobadas. Ver `docs/PERSISTENCE.md`.
+
 No hay despliegue, motor clínico validado, FHIR implementado ni integración LLM/ML. La próxima tarea exacta está en `CONTINUITY.json` y `docs/NEXT_PACKAGE.md`.

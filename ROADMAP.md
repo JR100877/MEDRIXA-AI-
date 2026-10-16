@@ -23,3 +23,5 @@ Actualización P4b (autorización de Robinson del 15/10, 21:39): **P4b está imp
 - **P9:** integración, compatibilidad y preparación para despliegues controlados (sin despliegue productivo).
 
 El adaptador FHIR y el Knowledge/AI Engine (antes P5/P6) siguen pendientes. Requieren decisiones clínicas y regulatorias; se reprogramarán con Robinson.
+
+Actualización P5: **P5 está implementado** en `dev/p5-postgres` (PostgreSQL probado contra un servidor 16 real efímero, 181 pruebas). No está fusionado. El siguiente es P6, arrendamiento de ejecuciones (propuesta).

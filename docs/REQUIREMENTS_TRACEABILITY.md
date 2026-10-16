@@ -20,5 +20,6 @@
 | R16 idempotencia | web/service.py (`derive_run_id`); manager `run_id` | IdempotencySyncTests; IdempotencyConcurrencyTests; mutaciones M4–M5 |
 | R17 errores seguros y trazables | web/errors.py; manejadores en web/app.py | Aserciones de sobre y ausencia de eco en todas las suites web; mutación M8 |
 | R18 seguridad por defecto y auditoría | web/settings.py; web/audit.py; `serve` en 127.0.0.1 | SettingsTests; AdverseTests; prueba con servidor real (evidencia en TEST_STATUS) |
+| R19 adaptador PostgreSQL compatible con StateRepository | persistence/postgres.py; `MEDRIXA_PG_DSN` | PostgresRepositoryContractTests (suite P4 sin cambios); PostgresSpecificTests; PostgresProcessRestartTests; PostgresHttpTests; mutaciones P5 M1–M4 |
 
 Se distingue evidencia automatizada de inspección: independencia y ausencia de servicios externos se constatan en las fuentes, no mediante una certificación de seguridad.

@@ -59,3 +59,32 @@ Regresión justificada (P4b tocó `api/contracts.py` y `persistence/manager.py`)
 **Análisis estático:** ruff 0.16.8 con reglas E, F, W, B y S (bandit) sobre `app/` y `scripts/` no dejó hallazgos. Hubo 2 falsos positivos S105, anotados con su justificación. En `tests/persistence` y `tests/web` tampoco quedan hallazgos. Quedan 3 imports sin uso en pruebas de P1–P3; no se tocaron porque son pruebas protegidas y el cambio sería cosmético.
 
 **Servidor real:** `python -m app.web serve` en 127.0.0.1, probado con curl, dio 201, una repetición idéntica marcada `Idempotent-Replayed: true`, 401 sin token y ninguna cabecera `Server`. La auditoría salió como líneas JSON sin secreto, token ni observaciones. Esta prueba **encontró un defecto** que las pruebas en proceso no veían: la auditoría se descartaba en silencio porque el logger no estaba configurado. Quedó corregido (ver ADR-015).
+
+## P5 — adaptador PostgreSQL (rama `dev/p5-postgres`)
+
+Entorno: **PostgreSQL 16.15 real** (binarios del sistema) en un clúster efímero local por ejecución, con psycopg 3.3.6 (binario, libpq 18.0.6) y Python 3.13.16 (`evidence/P5_environment.json`).
+
+Pruebas focalizadas: `python -m unittest tests.persistence.test_postgres -v` — **27 aprobadas**, 0 fallos/errores/omitidas. Evidencia: `evidence/P5_tests.txt`.
+
+- **Contrato del repositorio de P4, sin modificar (15).** Se ejecuta contra PostgreSQL y cubre los mismos casos que los otros dos adaptadores, incluida la concurrencia de 8 escritores.
+- **Específicas (7).**
+  - Migración idempotente y versionada.
+  - UPDATE, DELETE y TRUNCATE sobre eventos rechazados por la base de datos.
+  - Detección de 4 manipulaciones (texto de la instantánea, columna de estado, columna de revisión, checksum), tanto en `load` como en `save`.
+  - Eventos borrados por el propietario con los triggers desactivados → `CorruptRecord`, `scan` ilegible y recuperación que los cuenta como corruptos.
+  - Base de datos inaccesible → `StoreUnavailable` sin DSN, contraseña ni causa encadenada.
+  - `run_id` hostiles (inyección SQL, longitud excesiva) rechazados antes de llegar al SQL.
+  - 4 procesos concurrentes → 1 ganador.
+- **Recuperación (2):** la política completa sobre PostgreSQL, y un **proceso terminado con SIGKILL** con el agente en vuelo, que un proceso nuevo recupera con `INTERRUPTED`, sus eventos previos y 0 resultados.
+- **HTTP (1):** 5 duplicados concurrentes con el agente en vuelo → 1 ejecución; después de "reiniciar" con una aplicación y un repositorio nuevos, la repetición es idéntica y sin reejecutar nada.
+- **Configuración (2):** el DSN se trata como secreto, `MEDRIXA_STORE_DIR` y `MEDRIXA_PG_DSN` son excluyentes, y la aplicación usa PostgreSQL cuando está configurado.
+
+Regresión justificada (P5 tocó la configuración y la fábrica de la API, y añadió un adaptador al contrato compartido): `python -m unittest discover -s tests -t . -v` da **181 pruebas, 0 fallos, 0 errores, 0 omitidas** (154 previas + 27 nuevas). Evidencia: `evidence/P5_regression.txt`.
+- Se repitió 3 veces sin intermitencias.
+- También se ejecutó con todas las advertencias como errores, salvo la de terceros ya documentada.
+- Con `MEDRIXA_TEST_PG=off` el resultado es `OK (skipped=26)`: las pruebas que necesitan servidor se omiten y no cuentan como aprobadas.
+- No quedan procesos ni directorios temporales de PostgreSQL al terminar.
+
+**Verificación de las pruebas:** se introdujeron 4 defectos deliberados (sin comparar la tabla de eventos, sin checksum, sin triggers append-only, sin contrastar columnas con la instantánea). La suite detectó los 4.
+
+**Análisis estático:** ruff con E, F, W, B y S queda limpio. El aviso S608 se resolvió eliminando la concatenación dinámica de SQL, sin silenciarlo.

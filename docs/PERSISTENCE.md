@@ -1,6 +1,6 @@
-# Persistencia de ejecuciones (P4)
+# Persistencia de ejecuciones (P4, P5)
 
-Estado: **puerto implementado y probado con dos adaptadores provisionales**. PostgreSQL sigue siendo el destino previsto y **no está implementado**. Solo datos sintéticos.
+Estado: el puerto está implementado y probado con dos adaptadores provisionales (P4) y con el **adaptador PostgreSQL (P5)**. Los tres pasan la misma suite de contrato, y PostgreSQL se probó contra un servidor PostgreSQL 16 real, efímero y local. No se ha usado ninguna base gestionada, compartida ni con datos reales. Solo datos sintéticos.
 
 ## Puerto `StateRepository` (`app/persistence/repository.py`)
 
@@ -45,12 +45,36 @@ Para desarrollo y pruebas de reinicio en un solo equipo.
 
 La recuperación es idempotente. Si hay recuperadores concurrentes, cada ejecución recibe una sola transición, gracias al CAS. **Límite:** no hay arrendamiento ni latido. Recuperar una ejecución que otro proceso vivo aún ejecuta hace fallar a ese proceso con `RevisionConflict`. Es seguro, pero disruptivo.
 
-## Destino PostgreSQL (diseño, no implementación)
+## Adaptador PostgreSQL — `PostgresStateRepository` (P5, `app/persistence/postgres.py`)
 
-Este es un esquema orientativo para el futuro adaptador. Debe pasar la misma suite `tests/persistence/test_repository_contract.py`.
+Requiere `psycopg` 3 (`requirements-postgres.txt`) y se importa solo cuando se usa. La API lo activa con `MEDRIXA_PG_DSN`, que se trata como secreto y es excluyente con `MEDRIXA_STORE_DIR`.
 
-- `runs(run_id PK, case_id, revision, status, snapshot JSONB, updated_at)` y `run_events(run_id, sequence, kind, at, message_id, reason, PRIMARY KEY(run_id, sequence))`.
-- `save`: una transacción con `UPDATE runs SET … WHERE run_id=$1 AND revision=$2`. Si afecta 0 filas → `RevisionConflict`. Le sigue el `INSERT` del nuevo evento, con la PK de eventos como segunda barrera contra duplicados.
-- `create`: `INSERT`; una violación de PK → `DuplicateRun`.
+**Esquema.** La migración v1 es idempotente, no destructiva y está serializada con un advisory lock. Queda registrada en `medrixa_schema_migrations`.
 
-Pendientes antes de implementarlo: migraciones, credenciales gestionadas, TLS, roles de mínimo privilegio, cifrado y respaldo. Requiere aprobación si implica costos o infraestructura.
+| Tabla | Contenido |
+|---|---|
+| `medrixa_runs` | Una fila por ejecución. La instantánea se guarda como **texto JSON canónico** con `snapshot_sha256`, más columnas indexadas `case_id`, `revision` y `status`, con restricciones CHECK. No se usa JSONB porque renormaliza los números y rompería el checksum. |
+| `medrixa_run_events` | Un evento por fila, PK `(run_id, sequence)`, FK a la ejecución con `ON DELETE RESTRICT`. **Solo admite añadir:** los triggers rechazan UPDATE, DELETE y TRUNCATE, también para el propietario mientras estén activos. |
+
+**Escritura.** `save` se ejecuta en una sola transacción: `SELECT … FOR UPDATE` → verificación del registro → `check_successor` → `UPDATE … WHERE revision = esperada` → `INSERT` de los eventos nuevos. `create` usa `INSERT … ON CONFLICT DO NOTHING`, y 0 filas → `DuplicateRun`. Todos los valores van como parámetros; el SQL solo se compone con constantes.
+
+**Lectura.** Verifica el checksum, que la instantánea sea canónica, el `State` completo, la coherencia de las columnas indexadas y **la coincidencia exacta con la tabla de eventos**. Cualquier diferencia → `CorruptRecord`, y el registro nunca se repara.
+
+**Errores.** La base de datos inaccesible o con fallos da `StoreUnavailable`, sin el DSN ni el mensaje del driver. `repr` tampoco muestra el DSN.
+
+**Pruebas** (`tests/persistence/test_postgres.py`), contra un clúster efímero creado por `tests/persistence/pg_support.py`: socket Unix privado, sin TCP, autenticación `peer` y un rol no superusuario.
+- La suite de contrato de P4 sin cambios.
+- Detección de manipulaciones y append-only real.
+- 4 procesos concurrentes → 1 ganador.
+- Recuperación, incluido un **proceso terminado con SIGKILL** con el agente en vuelo.
+- Idempotencia HTTP con concurrencia y reinicio.
+- Si no hay PostgreSQL, o con `MEDRIXA_TEST_PG=off`, las pruebas se **omiten** y nunca se cuentan como aprobadas. `MEDRIXA_TEST_PG_ADMIN_DSN` permite usar un servidor de pruebas existente.
+
+**No incluido:**
+- Pool de conexiones: hoy abre una conexión por operación.
+- Configuración TLS.
+- Aprovisionamiento de roles: se recomienda un rol de migración y un rol de aplicación con solo SELECT, INSERT y UPDATE en `medrixa_runs` y SELECT e INSERT en `medrixa_run_events`; no está probado.
+- Respaldos, cifrado en reposo y retención.
+- Driver asíncrono: la E/S bloquea el bucle de eventos de la API.
+
+Una base gestionada o con costos requiere autorización.
