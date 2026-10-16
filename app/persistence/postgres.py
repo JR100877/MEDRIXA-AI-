@@ -85,6 +85,11 @@ INSERT INTO medrixa_schema_migrations (version) VALUES (2) ON CONFLICT (version)
 """
 
 
+class SchemaNotReady(RepositoryError):
+    """The database schema is missing or older than this code requires. Run the
+    migration with the owner role (``python -m app.persistence.pg_admin migrate``)."""
+
+
 class StoreUnavailable(RepositoryError):
     """Database unreachable or failing. Never carries the DSN or driver message."""
 
@@ -101,7 +106,10 @@ def _sha(text: str) -> str:
 class PostgresStateRepository(StateRepository):
     adapter_name = ADAPTER_NAME
 
-    def __init__(self, dsn: str, *, migrate: bool = True, connect_timeout: int = 5):
+    def __init__(self, dsn: str, *, migrate: bool = True, connect_timeout: int = 5, verify: bool = True):
+        """``migrate=True`` (development/test default) applies migrations with this DSN's role.
+        With least privilege (P7.4) the application role cannot migrate: pass
+        ``migrate=False`` and the schema version is verified instead (fail closed)."""
         try:
             import psycopg
         except ImportError:  # pragma: no cover - exercised only without the optional extra
@@ -111,6 +119,21 @@ class PostgresStateRepository(StateRepository):
         self._connect_timeout = connect_timeout
         if migrate:
             self.migrate()
+        elif verify:
+            self.require_schema(1)
+
+    def schema_version(self) -> int:
+        def read(cursor):
+            cursor.execute("SELECT to_regclass('medrixa_schema_migrations') IS NOT NULL")
+            if not cursor.fetchone()[0]:
+                return 0
+            cursor.execute("SELECT coalesce(max(version), 0) FROM medrixa_schema_migrations")
+            return int(cursor.fetchone()[0])
+        return self._run(read)
+
+    def require_schema(self, minimum: int) -> None:
+        if self.schema_version() < minimum:
+            raise SchemaNotReady("database schema not migrated to the required version")
 
     def __repr__(self) -> str:  # never expose the DSN
         return f"{type(self).__name__}(adapter={self.adapter_name!r})"
@@ -269,9 +292,11 @@ class PostgresRunLeases(RunLeases):
 
     def __init__(self, dsn: str, *, migrate: bool = True, connect_timeout: int = 5):
         # Reuses the repository's connection handling and error mapping (never leaks the DSN).
-        self._db = PostgresStateRepository(dsn, migrate=False, connect_timeout=connect_timeout)
+        self._db = PostgresStateRepository(dsn, migrate=False, connect_timeout=connect_timeout, verify=False)
         if migrate:
             self.migrate()
+        else:
+            self._db.require_schema(2)
 
     def __repr__(self) -> str:
         return f"{type(self).__name__}(adapter={self.adapter_name!r})"

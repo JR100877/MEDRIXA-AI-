@@ -58,8 +58,9 @@ def create_app(settings: Settings, repository: StateRepository | None = None,
     if repository is None:
         if settings.postgres_dsn is not None:
             from app.persistence.postgres import PostgresRunLeases, PostgresStateRepository
-            repository = PostgresStateRepository(settings.postgres_dsn.get_secret_value())
-            leases = leases or PostgresRunLeases(settings.postgres_dsn.get_secret_value())
+            dsn = settings.postgres_dsn.get_secret_value()
+            repository = PostgresStateRepository(dsn, migrate=settings.postgres_migrate)
+            leases = leases or PostgresRunLeases(dsn, migrate=settings.postgres_migrate)
         elif settings.store_dir is not None:
             from app.persistence.leases import LocalFileRunLeases
             from app.persistence.local_file import ProvisionalLocalFileRepository

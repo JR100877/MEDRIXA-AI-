@@ -115,3 +115,35 @@ def fresh_database_dsn() -> str:
     parts = dict(item.split("=", 1) for item in admin.split())
     parts["dbname"] = name
     return " ".join(f"{k}={v}" for k, v in parts.items())
+
+
+def create_application_role() -> str:
+    """P7.4: create a fresh NOLOGIN role the test client may assume (``-c role=...``).
+
+    Production uses a LOGIN application role directly; assuming it via membership
+    is a test-harness device (a real application session cannot RESET ROLE to
+    the owner because it never holds the owner's credentials)."""
+    try:
+        import psycopg
+    except ImportError:
+        raise unittest.SkipTest("psycopg not installed (requirements-postgres.txt)") from None
+    admin = _admin_dsn()
+    role = f"medrixa_app_{uuid.uuid4().hex[:10]}"
+    statements = [f'CREATE ROLE "{role}" NOLOGIN NOINHERIT', f'GRANT "{role}" TO CURRENT_USER']
+    if _cluster is not None and _cluster.os_user != _cluster.client_user:
+        statements[1] = f'GRANT "{role}" TO "{_cluster.client_user}"'
+        for statement in statements:
+            _cluster._as_owner(["psql", "-h", _cluster.dir, "-d", "postgres", "-v", "ON_ERROR_STOP=1", "-q",
+                                "-c", statement])
+        return role
+    try:
+        with psycopg.connect(admin, autocommit=True) as connection:
+            for statement in statements:
+                connection.execute(statement)
+    except psycopg.Error:
+        raise unittest.SkipTest("test PostgreSQL role cannot CREATE ROLE") from None
+    return role
+
+
+def as_role(dsn: str, role: str) -> str:
+    return f"{dsn} options='-c role={role}'"

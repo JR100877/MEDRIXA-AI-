@@ -31,6 +31,7 @@ class Settings(Contract):
     oidc: OidcSettings | None = None  # required in oidc mode
     store_dir: Path | None = None
     postgres_dsn: SecretStr | None = None  # P5; treated as a secret (may hold credentials)
+    postgres_migrate: bool = True  # P7.4: False for a least-privilege application role
     max_body_bytes: Annotated[int, Field(ge=1024, le=1_048_576)] = 1_048_576
     token_max_ttl_seconds: Annotated[int, Field(ge=60, le=28_800)] = 3_600
     clock_skew_seconds: Annotated[int, Field(ge=0, le=300)] = 30
@@ -116,6 +117,11 @@ def settings_from_env(environ: Mapping[str, str] | None = None, secrets: SecretP
                             ("max_active_runs", "MEDRIXA_MAX_ACTIVE_RUNS")):
         if env.get(variable):
             data[field] = env[variable]
+    if env.get("MEDRIXA_PG_MIGRATE"):
+        flag = env["MEDRIXA_PG_MIGRATE"].strip().lower()
+        if flag not in ("true", "false"):
+            raise ConfigurationError("MEDRIXA_PG_MIGRATE must be true or false")
+        data["postgres_migrate"] = flag == "true"
     if env.get("MEDRIXA_ALLOWED_HOSTS"):
         data["allowed_hosts"] = tuple(h.strip() for h in env["MEDRIXA_ALLOWED_HOSTS"].split(","))
     try:
