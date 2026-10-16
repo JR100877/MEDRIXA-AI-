@@ -35,15 +35,27 @@ def main(argv):
     history = HangingHistoryAgent(Path(argv[3])) if mode == "hang" else HistoryAgent()
     runner = Orchestrator(Planner(), Router({"history_analysis": history, "clinical_analysis": ClinicalAgent()}),
                           ExecutionLimits(agent_timeout_seconds=60))
+    import os
+    lease_ttl = os.environ.get("MEDRIXA_CRASH_LEASE_TTL")  # P6: run under a lease when set
+    leases = None
     if store.startswith("pgdsn-env:"):  # P5: DSN passed through an environment variable, never argv
-        import os
-        from app.persistence.postgres import PostgresStateRepository
-        repository = PostgresStateRepository(os.environ[store.split(":", 1)[1]], migrate=False)
+        from app.persistence.postgres import PostgresRunLeases, PostgresStateRepository
+        dsn = os.environ[store.split(":", 1)[1]]
+        repository = PostgresStateRepository(dsn, migrate=False)
+        if lease_ttl:
+            leases = PostgresRunLeases(dsn, migrate=False)
     else:
         repository = ProvisionalLocalFileRepository(store)
+        if lease_ttl:
+            from app.persistence.leases import LocalFileRunLeases
+            leases = LocalFileRunLeases(Path(store) / "leases")
     manager = PersistentStateManager(case(case_id), repository)
     print(manager.run_id, flush=True)
-    final = asyncio.run(runner.run(manager))
+    if leases is not None:
+        from app.persistence.leasing import LeasedExecutor
+        final = asyncio.run(LeasedExecutor(leases, ttl_seconds=float(lease_ttl)).run(runner, manager))
+    else:
+        final = asyncio.run(runner.run(manager))
     print(final.status, final.stop_reason, flush=True)
     return 0
 

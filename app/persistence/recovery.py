@@ -10,9 +10,11 @@ Policy (fail-closed, documented in DECISIONS.md ADR-009):
 - terminal runs are untouched. Corrupt records are reported, never modified,
   repaired or deleted.
 
-Run this at service start-up while no executor is active. There is no lease or
-heartbeat yet: recovering a run that a live process is still executing makes
-that process fail with a revision conflict (safe, but disruptive).
+Without leases (P4 mode) run this at start-up while no executor is active:
+recovering a run that a live process is still executing makes that process
+fail with a revision conflict (safe, but disruptive). With ``leases`` (P6),
+running runs whose executor holds a live lease are skipped and reported as
+``active_elsewhere``; only unleased or expired runs move to review.
 """
 from typing import Annotated
 
@@ -30,10 +32,14 @@ class RecoveryReport(Contract):
     already_terminal: Annotated[int, Field(ge=0)] = 0
     corrupt_records: Annotated[int, Field(ge=0)] = 0
     agents_reexecuted: Annotated[int, Field(ge=0, le=0)] = 0
+    # P6 (additive): running runs left untouched because their executor holds a live lease.
+    active_elsewhere: Annotated[tuple[Identifier, ...], Field(max_length=100_000)] = ()
 
 
-def recover_interrupted_runs(repository: StateRepository) -> RecoveryReport:
-    moved, not_started = [], []
+def recover_interrupted_runs(repository: StateRepository, leases=None) -> RecoveryReport:
+    """``leases`` (P6, optional RunLeases): running runs with a live lease are skipped
+    and reported as ``active_elsewhere``; without it, P4 behaviour is unchanged."""
+    moved, not_started, active = [], [], []
     terminal = corrupt = 0
     for entry in repository.scan():
         if not entry.readable:
@@ -53,6 +59,9 @@ def recover_interrupted_runs(repository: StateRepository) -> RecoveryReport:
         if state.status == "awaiting_human_review":
             terminal += 1
             continue
+        if leases is not None and leases.live(state.run_id) is not None:
+            active.append(state.run_id)
+            continue
         try:
             manager.request_review("INTERRUPTED", state.revision)
             moved.append(state.run_id)
@@ -60,7 +69,9 @@ def recover_interrupted_runs(repository: StateRepository) -> RecoveryReport:
             # Another recoverer (or the live executor) moved it first; re-read, never overwrite.
             if repository.load(state.run_id).status == "awaiting_human_review":
                 terminal += 1
+            elif leases is not None:
+                active.append(state.run_id)  # an executor is still writing: it is alive
             else:
                 raise
     return RecoveryReport(moved_to_review=tuple(moved), not_started=tuple(not_started),
-                          already_terminal=terminal, corrupt_records=corrupt)
+                          already_terminal=terminal, corrupt_records=corrupt, active_elsewhere=tuple(active))

@@ -33,6 +33,13 @@
       "default": 0,
       "title": "Agents Reexecuted",
       "type": "integer"
+    },
+    "active_elsewhere": {
+      "default": 0,
+      "description": "P6: runs skipped because a live lease exists. Omitted from output when 0.",
+      "minimum": 0,
+      "title": "Active Elsewhere",
+      "type": "integer"
     }
   },
   "required": [

@@ -49,6 +49,18 @@
       "minimum": 0,
       "title": "Agents Reexecuted",
       "type": "integer"
+    },
+    "active_elsewhere": {
+      "default": [],
+      "items": {
+        "maxLength": 80,
+        "minLength": 1,
+        "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+        "type": "string"
+      },
+      "maxItems": 100000,
+      "title": "Active Elsewhere",
+      "type": "array"
     }
   },
   "title": "RecoveryReport",

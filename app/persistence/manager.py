@@ -37,9 +37,21 @@ class PersistentStateManager(StateManager):
         manager._state = repository.load(run_id)
         return manager
 
+    _write_guard = None  # P6: optional callable raising before a write (e.g. lease deadline passed)
+
     @property
     def run_id(self) -> str:
         return self.snapshot().run_id
 
+    def set_write_guard(self, guard) -> None:
+        """P6 (additive): ``guard()`` runs before every persisted transition and may
+        raise to refuse the write. Used to stop writing once a lease may have expired."""
+        if guard is not None and not callable(guard):
+            raise TypeError("guard must be callable")
+        with self._lock:
+            self._write_guard = guard
+
     def _publish(self, previous: State, candidate: State) -> None:
+        if self._write_guard is not None:
+            self._write_guard()
         self._state = self._repository.save(candidate, previous.revision)

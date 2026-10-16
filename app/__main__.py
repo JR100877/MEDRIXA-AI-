@@ -24,16 +24,18 @@ def main(argv=None) -> int:
     repository = None
     if args.store is not None:
         # Imported lazily: the in-memory default path does not touch the filesystem.
+        from app.persistence.leases import LocalFileRunLeases
         from app.persistence.local_file import ProvisionalLocalFileRepository
         try:
             repository = ProvisionalLocalFileRepository(args.store)
+            leases = LocalFileRunLeases(args.store / "leases")  # P6: liveness of executors
         except OSError:
             print('{"error":"STORE_UNAVAILABLE"}', file=sys.stderr)
             return 2
     if args.recover:
         from app.persistence.recovery import recover_interrupted_runs
-        report = summarize_recovery(recover_interrupted_runs(repository))
-        print(report.model_dump_json(indent=2))
+        report = summarize_recovery(recover_interrupted_runs(repository, leases))
+        print(report.public_json(indent=2))
         return 0 if report.corrupt_records == 0 else 1
     try:
         if args.case:
@@ -47,12 +49,14 @@ def main(argv=None) -> int:
     if repository is None:
         state = asyncio.run(create_runner().run(StateManager(case)))
     else:
+        from app.persistence.leases import LeaseHeld, LeaseLost
+        from app.persistence.leasing import LeasedExecutor
         from app.persistence.manager import PersistentStateManager
         from app.persistence.repository import RepositoryError, StateConflict
         try:
             manager = PersistentStateManager(case, repository)
-            state = asyncio.run(create_runner().run(manager))
-        except (RepositoryError, StateConflict, OSError):
+            state = asyncio.run(LeasedExecutor(leases).run(create_runner(), manager))
+        except (RepositoryError, StateConflict, OSError, LeaseHeld, LeaseLost):
             # Stored state keeps its last persisted revision; recover with --recover.
             print('{"error":"STORE_UNAVAILABLE"}', file=sys.stderr)
             return 1

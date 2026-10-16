@@ -52,21 +52,28 @@ def _json(model, status: int = 200, headers: dict | None = None) -> JSONResponse
 
 def create_app(settings: Settings, repository: StateRepository | None = None,
                audit: AuditSink | None = None, authenticator: Authenticator | None = None,
-               runner_factory=None) -> FastAPI:
+               runner_factory=None, leases=None) -> FastAPI:
     settings = Settings.model_validate(settings)
     if repository is None:
         if settings.postgres_dsn is not None:
-            from app.persistence.postgres import PostgresStateRepository
+            from app.persistence.postgres import PostgresRunLeases, PostgresStateRepository
             repository = PostgresStateRepository(settings.postgres_dsn.get_secret_value())
+            leases = leases or PostgresRunLeases(settings.postgres_dsn.get_secret_value())
         elif settings.store_dir is not None:
+            from app.persistence.leases import LocalFileRunLeases
             from app.persistence.local_file import ProvisionalLocalFileRepository
             repository = ProvisionalLocalFileRepository(settings.store_dir)
+            leases = leases or LocalFileRunLeases(settings.store_dir / "leases")
         else:
             repository = InMemoryStateRepository()  # explicit: nothing survives a restart
+    if leases is None:
+        from app.persistence.leases import InMemoryRunLeases
+        leases = InMemoryRunLeases()  # same-process liveness only
     authenticator = authenticator or HmacTokenAuthenticator(
         settings.auth_secret.get_secret_value(), settings.token_max_ttl_seconds, settings.clock_skew_seconds)
     service_args = {"runner_factory": runner_factory} if runner_factory else {}
-    service = RunService(repository, audit or LoggingAuditSink(), **service_args)
+    service = RunService(repository, audit or LoggingAuditSink(), leases=leases,
+                         lease_ttl_seconds=settings.lease_ttl_seconds, **service_args)
     allowed_hosts = frozenset(settings.allowed_hosts)
 
     app = FastAPI(title="MEDRIXA AI — local API (provisional)", version=API_VERSION,
@@ -186,7 +193,8 @@ def create_app(settings: Settings, repository: StateRepository | None = None,
               responses=_errors(401, 403, 409, 500, 503), openapi_extra=bearer)
     async def recover(request: Request) -> JSONResponse:
         principal = authenticate(request)
-        return _json(await run_in_threadpool(service.recover, principal, request.state.request_id))
+        view = await run_in_threadpool(service.recover, principal, request.state.request_id)
+        return JSONResponse(view.public())
 
     def openapi_schema() -> dict:
         if app.openapi_schema:

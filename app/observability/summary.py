@@ -24,11 +24,18 @@ class RecoverySummary(Contract):
     already_terminal: Annotated[int, Field(ge=0)]
     corrupt_records: Annotated[int, Field(ge=0)]
     agents_reexecuted: Literal[0] = 0
+    active_elsewhere: Annotated[int, Field(ge=0, description="P6: runs skipped because a live lease exists. "
+                                                             "Omitted from output when 0.")] = 0
+
+    def public_json(self, **kwargs) -> str:
+        """Serialised form; the additive P6 field is omitted when 0 (v1 output unchanged)."""
+        return self.model_dump_json(exclude={"active_elsewhere"} if self.active_elsewhere == 0 else None, **kwargs)
 
 
 def summarize_recovery(report) -> RecoverySummary:
     return RecoverySummary(moved_to_review=len(report.moved_to_review), not_started=len(report.not_started),
-                           already_terminal=report.already_terminal, corrupt_records=report.corrupt_records)
+                           already_terminal=report.already_terminal, corrupt_records=report.corrupt_records,
+                           active_elsewhere=len(getattr(report, "active_elsewhere", ())))
 
 
 def summarize(state: State) -> RunSummary:

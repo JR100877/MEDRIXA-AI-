@@ -25,6 +25,7 @@ import json
 from pydantic import ValidationError
 
 from app.core.state import State
+from app.persistence.leases import _IDENTIFIER, Lease, LeaseHeld, LeaseLost, RunLeases, check_ids, check_ttl
 from app.persistence.repository import (CorruptRecord, DuplicateRun, RepositoryError, RunIndexEntry, RunNotFound,
                                         StateRepository, check_new_run, check_successor, validate_run_id)
 
@@ -70,6 +71,17 @@ DO $$ BEGIN
     END IF;
 END $$;
 INSERT INTO medrixa_schema_migrations (version) VALUES (1) ON CONFLICT (version) DO NOTHING;
+"""
+
+
+MIGRATION_V2_LEASES = """
+CREATE TABLE IF NOT EXISTS medrixa_run_leases (
+    run_id text PRIMARY KEY CHECK (char_length(run_id) BETWEEN 1 AND 80),
+    owner text NOT NULL CHECK (char_length(owner) BETWEEN 1 AND 80),
+    epoch integer NOT NULL CHECK (epoch >= 1),
+    expires_at timestamptz NOT NULL
+);
+INSERT INTO medrixa_schema_migrations (version) VALUES (2) ON CONFLICT (version) DO NOTHING;
 """
 
 
@@ -233,3 +245,71 @@ class PostgresStateRepository(StateRepository):
             entries.append(RunIndexEntry(key=state.run_id, run_id=state.run_id, case_id=state.case.case_id,
                                          revision=state.revision, status=state.status, readable=True))
         return tuple(entries)
+
+
+class PostgresRunLeases(RunLeases):
+    """P6: RunLeases on PostgreSQL. Expiry uses the DATABASE clock (clock_timestamp()),
+    so executors on different hosts agree on liveness. Each operation is one atomic
+    statement; table created by migration v2 (additive, idempotent)."""
+
+    adapter_name = ADAPTER_NAME
+
+    _ACQUIRE = ("INSERT INTO medrixa_run_leases (run_id, owner, epoch, expires_at) "
+                "VALUES (%s, %s, 1, clock_timestamp() + make_interval(secs => %s)) "
+                "ON CONFLICT (run_id) DO UPDATE SET owner = EXCLUDED.owner, epoch = medrixa_run_leases.epoch + 1, "
+                "expires_at = EXCLUDED.expires_at WHERE medrixa_run_leases.expires_at <= clock_timestamp() "
+                "RETURNING run_id, owner, epoch, expires_at")
+    _RENEW = ("UPDATE medrixa_run_leases SET expires_at = clock_timestamp() + make_interval(secs => %s) "
+              "WHERE run_id = %s AND owner = %s AND epoch = %s AND expires_at > clock_timestamp() "
+              "RETURNING run_id, owner, epoch, expires_at")
+    _RELEASE = ("UPDATE medrixa_run_leases SET expires_at = clock_timestamp() "
+                "WHERE run_id = %s AND owner = %s AND epoch = %s AND expires_at > clock_timestamp()")
+    _LIVE = ("SELECT run_id, owner, epoch, expires_at FROM medrixa_run_leases "
+             "WHERE run_id = %s AND expires_at > clock_timestamp()")
+
+    def __init__(self, dsn: str, *, migrate: bool = True, connect_timeout: int = 5):
+        # Reuses the repository's connection handling and error mapping (never leaks the DSN).
+        self._db = PostgresStateRepository(dsn, migrate=False, connect_timeout=connect_timeout)
+        if migrate:
+            self.migrate()
+
+    def __repr__(self) -> str:
+        return f"{type(self).__name__}(adapter={self.adapter_name!r})"
+
+    def migrate(self) -> int:
+        def apply(cursor):
+            cursor.execute("SELECT pg_advisory_xact_lock(hashtext('medrixa_schema_migrations'))")
+            cursor.execute(MIGRATION_V1)
+            cursor.execute(MIGRATION_V2_LEASES)
+            cursor.execute("SELECT max(version) FROM medrixa_schema_migrations")
+            return cursor.fetchone()[0]
+        return self._db._run(apply)
+
+    @staticmethod
+    def _lease(row):
+        return Lease(run_id=row[0], owner=row[1], epoch=row[2], expires_at=row[3])
+
+    def acquire(self, run_id, owner, ttl_seconds):
+        run_id, owner = check_ids(run_id, owner)
+        ttl = check_ttl(ttl_seconds)
+        row = self._db._run(lambda c: c.execute(self._ACQUIRE, (run_id, owner, ttl)).fetchone())
+        if row is None:
+            raise LeaseHeld("lease is held")
+        return self._lease(row)
+
+    def renew(self, lease, ttl_seconds):
+        lease = Lease.model_validate(lease)
+        ttl = check_ttl(ttl_seconds)
+        row = self._db._run(lambda c: c.execute(self._RENEW, (ttl, lease.run_id, lease.owner, lease.epoch)).fetchone())
+        if row is None:
+            raise LeaseLost("lease lost")
+        return self._lease(row)
+
+    def release(self, lease):
+        lease = Lease.model_validate(lease)
+        self._db._run(lambda c: c.execute(self._RELEASE, (lease.run_id, lease.owner, lease.epoch)))
+
+    def live(self, run_id):
+        run_id = _IDENTIFIER.validate_python(run_id)
+        row = self._db._run(lambda c: c.execute(self._LIVE, (run_id,)).fetchone())
+        return self._lease(row) if row else None

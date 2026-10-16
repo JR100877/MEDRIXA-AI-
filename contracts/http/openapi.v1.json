@@ -192,6 +192,13 @@
       "RecoveryView": {
         "additionalProperties": false,
         "properties": {
+          "active_elsewhere": {
+            "default": 0,
+            "description": "P6: running runs skipped because their executor holds a live lease. Omitted when 0.",
+            "minimum": 0.0,
+            "title": "Active Elsewhere",
+            "type": "integer"
+          },
           "agents_reexecuted": {
             "const": 0,
             "default": 0,

@@ -22,6 +22,7 @@ class Settings(Contract):
     max_body_bytes: Annotated[int, Field(ge=1024, le=1_048_576)] = 1_048_576
     token_max_ttl_seconds: Annotated[int, Field(ge=60, le=28_800)] = 3_600
     clock_skew_seconds: Annotated[int, Field(ge=0, le=300)] = 30
+    lease_ttl_seconds: Annotated[float, Field(ge=1, le=3600, allow_inf_nan=False)] = 30.0  # P6
     allowed_hosts: Annotated[tuple[str, ...], Field(min_length=1, max_length=10)] = ("127.0.0.1", "localhost")
 
     @field_validator("auth_secret")
@@ -58,6 +59,8 @@ def settings_from_env(environ: dict | None = None) -> Settings:
     data = {"environment": name, "auth_secret": env.get("MEDRIXA_AUTH_SECRET", "")}
     if env.get("MEDRIXA_STORE_DIR"):
         data["store_dir"] = Path(env["MEDRIXA_STORE_DIR"])
+    if env.get("MEDRIXA_LEASE_TTL_SECONDS"):
+        data["lease_ttl_seconds"] = env["MEDRIXA_LEASE_TTL_SECONDS"]
     if env.get("MEDRIXA_PG_DSN"):
         data["postgres_dsn"] = env["MEDRIXA_PG_DSN"]
     if env.get("MEDRIXA_ALLOWED_HOSTS"):
@@ -67,4 +70,5 @@ def settings_from_env(environ: dict | None = None) -> Settings:
     except ValueError:
         # Field names only; never echo values (the secret could be among them).
         raise ConfigurationError("invalid MEDRIXA configuration (MEDRIXA_ENV, MEDRIXA_AUTH_SECRET, "
-                                 "MEDRIXA_STORE_DIR, MEDRIXA_PG_DSN, MEDRIXA_ALLOWED_HOSTS)") from None
+                                 "MEDRIXA_STORE_DIR, MEDRIXA_PG_DSN, MEDRIXA_LEASE_TTL_SECONDS, "
+                                 "MEDRIXA_ALLOWED_HOSTS)") from None

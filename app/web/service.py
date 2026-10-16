@@ -16,6 +16,8 @@ from app.bootstrap import create_runner
 from app.core.state import State
 from app.core.state_manager import ContractViolation, StateConflict
 from app.models.contracts import ClinicalCase
+from app.persistence.leases import LeaseHeld, LeaseLost, RunLeases
+from app.persistence.leasing import DEFAULT_TTL_SECONDS, LeasedExecutor
 from app.persistence.manager import PersistentStateManager
 from app.persistence.recovery import recover_interrupted_runs
 from app.persistence.repository import (CorruptRecord, DuplicateRun, RepositoryError, RunNotFound,
@@ -47,10 +49,13 @@ def _storage_error(exc: BaseException) -> ApiError:
 
 class RunService:
     def __init__(self, repository: StateRepository, audit: AuditSink,
-                 runner_factory: Callable = create_runner):
+                 runner_factory: Callable = create_runner, leases: RunLeases | None = None,
+                 lease_ttl_seconds: float = DEFAULT_TTL_SECONDS):
         if not isinstance(repository, StateRepository) or not isinstance(audit, AuditSink):
             raise TypeError("repository and audit sink ports are required")
         self.repository = repository
+        self.leases = leases
+        self._executor = LeasedExecutor(leases, ttl_seconds=lease_ttl_seconds) if leases is not None else None
         self._audit = audit
         self._runner_factory = runner_factory
         self._active_lock = Lock()
@@ -113,7 +118,13 @@ class RunService:
         with self._active_lock:
             self._active += 1
         try:
-            final = await self._runner_factory().run(manager)
+            if self._executor is not None:
+                final = await self._executor.run(self._runner_factory(), manager)
+            else:
+                final = await self._runner_factory().run(manager)
+        except (LeaseHeld, LeaseLost):
+            # Execution stopped without retry; the run is left for recovery and human review.
+            raise ApiError("CONFLICT") from None
         except Exception as exc:
             # The store keeps the last persisted revision; recovery or a retry resolves it.
             raise _storage_error(exc) from None
@@ -163,11 +174,12 @@ class RunService:
                 if self._active:
                     raise ApiError("RUNS_ACTIVE")
                 try:
-                    report = recover_interrupted_runs(self.repository)
+                    report = recover_interrupted_runs(self.repository, self.leases)
                 except Exception as exc:
                     raise _storage_error(exc) from None
             return RecoveryView(moved_to_review=len(report.moved_to_review), not_started=len(report.not_started),
-                                already_terminal=report.already_terminal, corrupt_records=report.corrupt_records)
+                                already_terminal=report.already_terminal, corrupt_records=report.corrupt_records,
+                                active_elsewhere=len(report.active_elsewhere))
         except ApiError as error:
             code, status = error.code, error.status
             raise

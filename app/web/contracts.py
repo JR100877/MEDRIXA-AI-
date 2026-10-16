@@ -84,6 +84,14 @@ class RecoveryView(HttpContract):
     already_terminal: Annotated[int, Field(ge=0)]
     corrupt_records: Annotated[int, Field(ge=0)]
     agents_reexecuted: Literal[0] = 0
+    active_elsewhere: Annotated[int, Field(ge=0, description="P6: running runs skipped because their executor "
+                                                             "holds a live lease. Omitted when 0.")] = 0
+
+    def public(self) -> dict:
+        data = self.model_dump(mode="json")
+        if self.active_elsewhere == 0:
+            del data["active_elsewhere"]  # additive field: v1 responses unchanged when unused
+        return data
 
 
 class HealthView(HttpContract):
