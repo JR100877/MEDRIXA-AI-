@@ -36,6 +36,10 @@ class Settings(Contract):
     clock_skew_seconds: Annotated[int, Field(ge=0, le=300)] = 30
     lease_ttl_seconds: Annotated[float, Field(ge=1, le=3600, allow_inf_nan=False)] = 30.0  # P6
     allowed_hosts: Annotated[tuple[str, ...], Field(min_length=1, max_length=10)] = ("127.0.0.1", "localhost")
+    # P7.3: per-process limits (a shared limiter is needed with several replicas).
+    rate_limit_ip_per_minute: Annotated[int, Field(ge=1, le=100_000)] = 600
+    rate_limit_subject_per_minute: Annotated[int, Field(ge=1, le=100_000)] = 120
+    max_active_runs: Annotated[int, Field(ge=1, le=1_000)] = 16
 
     @field_validator("auth_secret")
     @classmethod
@@ -107,6 +111,11 @@ def settings_from_env(environ: Mapping[str, str] | None = None, secrets: SecretP
         data["lease_ttl_seconds"] = env["MEDRIXA_LEASE_TTL_SECONDS"]
     if postgres_dsn is not None:
         data["postgres_dsn"] = postgres_dsn
+    for field, variable in (("rate_limit_ip_per_minute", "MEDRIXA_RATE_LIMIT_IP_PER_MINUTE"),
+                            ("rate_limit_subject_per_minute", "MEDRIXA_RATE_LIMIT_SUBJECT_PER_MINUTE"),
+                            ("max_active_runs", "MEDRIXA_MAX_ACTIVE_RUNS")):
+        if env.get(variable):
+            data[field] = env[variable]
     if env.get("MEDRIXA_ALLOWED_HOSTS"):
         data["allowed_hosts"] = tuple(h.strip() for h in env["MEDRIXA_ALLOWED_HOSTS"].split(","))
     try:
@@ -115,4 +124,5 @@ def settings_from_env(environ: Mapping[str, str] | None = None, secrets: SecretP
         # Field names only; never echo values (the secret could be among them).
         raise ConfigurationError("invalid MEDRIXA configuration (MEDRIXA_ENV, MEDRIXA_AUTH_SECRET[_FILE], "
                                  "MEDRIXA_STORE_DIR, MEDRIXA_PG_DSN[_FILE], MEDRIXA_LEASE_TTL_SECONDS, "
-                                 "MEDRIXA_ALLOWED_HOSTS, MEDRIXA_AUTH_MODE, MEDRIXA_OIDC_*)") from None
+                                 "MEDRIXA_ALLOWED_HOSTS, MEDRIXA_AUTH_MODE, MEDRIXA_OIDC_*, MEDRIXA_RATE_LIMIT_*, "
+                                 "MEDRIXA_MAX_ACTIVE_RUNS)") from None

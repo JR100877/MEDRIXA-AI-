@@ -83,7 +83,9 @@
               "STORE_UNAVAILABLE",
               "STORE_INTEGRITY_ERROR",
               "AUDIT_UNAVAILABLE",
-              "INTERNAL_ERROR"
+              "INTERNAL_ERROR",
+              "RATE_LIMITED",
+              "CAPACITY_EXCEEDED"
             ],
             "title": "Code",
             "type": "string"
@@ -490,6 +492,16 @@
             },
             "description": "Conflict"
           },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
           "500": {
             "content": {
               "application/json": {
@@ -535,6 +547,16 @@
               }
             },
             "description": "Successful Response"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Too Many Requests"
           }
         },
         "summary": "Health",
@@ -649,6 +671,16 @@
             },
             "description": "Unprocessable Content"
           },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
           "500": {
             "content": {
               "application/json": {
@@ -738,6 +770,16 @@
             },
             "description": "Not Found"
           },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
           "500": {
             "content": {
               "application/json": {
@@ -826,6 +868,16 @@
               }
             },
             "description": "Not Found"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Too Many Requests"
           },
           "500": {
             "content": {

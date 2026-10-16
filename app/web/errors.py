@@ -22,15 +22,18 @@ CATALOGUE: dict[ErrorCode, tuple[int, str]] = {
     "STORE_INTEGRITY_ERROR": (500, "Stored data failed an integrity check."),
     "AUDIT_UNAVAILABLE": (503, "Audit is unavailable; the operation was not performed."),
     "STORE_UNAVAILABLE": (503, "Storage is unavailable."),
+    "RATE_LIMITED": (429, "Too many requests; retry after the indicated delay."),
+    "CAPACITY_EXCEEDED": (503, "Execution capacity is exhausted; retry after the indicated delay."),
 }
 
 
 class ApiError(Exception):
-    def __init__(self, code: str):
+    def __init__(self, code: str, retry_after: int | None = None):
         known: ErrorCode = code if code in CATALOGUE else "INTERNAL_ERROR"
         super().__init__(known)
         self.code: ErrorCode = known
         self.status, self.message = CATALOGUE[known]
+        self.retry_after = retry_after  # P7.3: seconds, sent as Retry-After
 
 
 def error_payload(code: ErrorCode, request_id: str) -> tuple[int, dict]:

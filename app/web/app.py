@@ -20,6 +20,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from app.api.contracts import InputRejected, parse_strict
 from app.persistence.memory import InMemoryStateRepository
 from app.persistence.repository import StateRepository
+from app.security.ratelimit import RateLimiter, TokenBucketLimiter
 from app.web import API_VERSION
 from app.web.audit import AuditSink, LoggingAuditSink
 from app.web.auth import AuthenticationFailed, Authenticator, HmacTokenAuthenticator, Principal
@@ -81,7 +82,10 @@ def create_app(settings: Settings, repository: StateRepository | None = None,
     active_authenticator: Authenticator = authenticator
     service_args = {"runner_factory": runner_factory} if runner_factory else {}
     service = RunService(repository, audit or LoggingAuditSink(), leases=leases,
-                         lease_ttl_seconds=settings.lease_ttl_seconds, **service_args)
+                         lease_ttl_seconds=settings.lease_ttl_seconds, max_active_runs=settings.max_active_runs,
+                         **service_args)
+    ip_limiter: RateLimiter = TokenBucketLimiter(settings.rate_limit_ip_per_minute)
+    subject_limiter: RateLimiter = TokenBucketLimiter(settings.rate_limit_subject_per_minute)
     allowed_hosts = frozenset(settings.allowed_hosts)
 
     app = FastAPI(title="MEDRIXA AI — local API (provisional)", version=API_VERSION,
@@ -95,18 +99,26 @@ def create_app(settings: Settings, repository: StateRepository | None = None,
     def request_id_of(request: Request) -> str:
         return getattr(request.state, "request_id", None) or uuid.uuid4().hex
 
-    def error_response(request: Request, code: ErrorCode) -> JSONResponse:
+    def error_response(request: Request, code: ErrorCode, retry_after: int | None = None) -> JSONResponse:
         status, body = error_payload(code, request_id_of(request))
-        headers = {"WWW-Authenticate": 'Bearer realm="medrixa"'} if status == 401 else None
-        return JSONResponse(body, status_code=status, headers=headers)
+        headers = {"WWW-Authenticate": 'Bearer realm="medrixa"'} if status == 401 else {}
+        if retry_after is not None:
+            headers["Retry-After"] = str(int(retry_after))
+        return JSONResponse(body, status_code=status, headers=headers or None)
 
     @app.middleware("http")
     async def security_envelope(request: Request, call_next):
         supplied = request.headers.get("x-request-id", "")
         request.state.request_id = supplied if _REQUEST_ID.match(supplied) else uuid.uuid4().hex
         host = (request.headers.get("host") or "").rsplit(":", 1)[0].strip("[]")
+        retry = None
+        if host in allowed_hosts:
+            # Before authentication: also bounds credential guessing per client address.
+            retry = ip_limiter.check(request.client.host if request.client else "unknown")
         if host not in allowed_hosts:
             response = error_response(request, "INVALID_INPUT")
+        elif retry is not None:
+            response = error_response(request, "RATE_LIMITED", int(retry))
         else:
             try:
                 response = await call_next(request)
@@ -121,7 +133,7 @@ def create_app(settings: Settings, repository: StateRepository | None = None,
 
     @app.exception_handler(ApiError)
     async def api_error(request: Request, exc: ApiError):
-        return error_response(request, exc.code)
+        return error_response(request, exc.code, exc.retry_after)
 
     @app.exception_handler(RequestValidationError)
     async def validation_error(request: Request, exc: RequestValidationError):
@@ -134,10 +146,15 @@ def create_app(settings: Settings, repository: StateRepository | None = None,
     async def authenticate(request: Request) -> Principal:
         try:
             # In a worker thread: OIDC key refresh performs bounded network I/O.
-            return await run_in_threadpool(active_authenticator.authenticate, request.headers.get("authorization"))
+            principal = await run_in_threadpool(active_authenticator.authenticate,
+                                                request.headers.get("authorization"))
         except AuthenticationFailed:
             service.audit_auth_failure(request.state.request_id)
             raise ApiError("UNAUTHENTICATED") from None
+        retry = subject_limiter.check(f"{principal.organization or '-'}\x00{principal.subject}")
+        if retry is not None:
+            raise ApiError("RATE_LIMITED", int(retry))
+        return principal
 
     async def read_body(request: Request) -> bytes:
         content_type = request.headers.get("content-type", "")
@@ -155,13 +172,13 @@ def create_app(settings: Settings, repository: StateRepository | None = None,
 
     bearer: dict[str, Any] = {"security": [{"bearerAuth": []}]}
 
-    @app.get("/v1/health", response_model=HealthView, tags=["system"])
+    @app.get("/v1/health", response_model=HealthView, tags=["system"], responses=_errors(429))
     async def health() -> JSONResponse:
         return _json(HealthView())
 
     @app.post("/v1/runs", status_code=201, response_model=RunView, tags=["runs"],
               summary="Create and execute a synthetic run (idempotent)",
-              responses=_errors(400, 401, 403, 409, 413, 415, 422, 500, 503),
+              responses=_errors(400, 401, 403, 409, 413, 415, 422, 429, 500, 503),
               openapi_extra={**bearer, "parameters": [{
                   "name": "Idempotency-Key", "in": "header", "required": True,
                   "description": "Client-generated key, unique per intended run (e.g. a UUID). "
@@ -186,20 +203,20 @@ def create_app(settings: Settings, repository: StateRepository | None = None,
     run_id_param = Annotated[str, Path(description="Run identifier (opaque).")]
 
     @app.get("/v1/runs/{run_id}", response_model=RunView, tags=["runs"],
-             responses=_errors(401, 403, 404, 500, 503), openapi_extra=bearer)
+             responses=_errors(401, 403, 404, 429, 500, 503), openapi_extra=bearer)
     async def get_run(request: Request, run_id: run_id_param) -> JSONResponse:
         principal = await authenticate(request)
         return _json(await run_in_threadpool(service.get_run, principal, run_id, request.state.request_id))
 
     @app.get("/v1/runs/{run_id}/events", response_model=RunEventsView, tags=["runs"],
-             responses=_errors(401, 403, 404, 500, 503), openapi_extra=bearer)
+             responses=_errors(401, 403, 404, 429, 500, 503), openapi_extra=bearer)
     async def get_events(request: Request, run_id: run_id_param) -> JSONResponse:
         principal = await authenticate(request)
         return _json(await run_in_threadpool(service.get_events, principal, run_id, request.state.request_id))
 
     @app.post("/v1/admin/recovery", response_model=RecoveryView, tags=["operations"],
               summary="Move interrupted runs to human review (never re-executes agents)",
-              responses=_errors(401, 403, 409, 500, 503), openapi_extra=bearer)
+              responses=_errors(401, 403, 409, 429, 500, 503), openapi_extra=bearer)
     async def recover(request: Request) -> JSONResponse:
         principal = await authenticate(request)
         view = await run_in_threadpool(service.recover, principal, request.state.request_id)

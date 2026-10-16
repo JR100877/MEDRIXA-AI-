@@ -50,7 +50,7 @@ def _storage_error(exc: BaseException) -> ApiError:
 class RunService:
     def __init__(self, repository: StateRepository, audit: AuditSink,
                  runner_factory: Callable = create_runner, leases: RunLeases | None = None,
-                 lease_ttl_seconds: float = DEFAULT_TTL_SECONDS):
+                 lease_ttl_seconds: float = DEFAULT_TTL_SECONDS, max_active_runs: int = 16):
         if not isinstance(repository, StateRepository) or not isinstance(audit, AuditSink):
             raise TypeError("repository and audit sink ports are required")
         self.repository = repository
@@ -60,6 +60,9 @@ class RunService:
         self._runner_factory = runner_factory
         self._active_lock = Lock()
         self._active = 0
+        if type(max_active_runs) is not int or max_active_runs < 1:
+            raise ValueError("max_active_runs must be a positive integer")
+        self._max_active = max_active_runs
 
     # -- audit helpers -----------------------------------------------------------
     def _record(self, **fields) -> None:
@@ -99,6 +102,19 @@ class RunService:
             self._record(**base, phase="outcome", outcome=code, status_code=status)
 
     async def _create_or_replay(self, case: ClinicalCase, run_id: str) -> tuple[RunView, bool]:
+        # Reserve capacity BEFORE creating the run, so saturation never leaves a run
+        # stored in "created" without an executor. Replays also wait for capacity.
+        with self._active_lock:
+            if self._active >= self._max_active:
+                raise ApiError("CAPACITY_EXCEEDED", retry_after=1)
+            self._active += 1
+        try:
+            return await self._create_or_replay_reserved(case, run_id)
+        finally:
+            with self._active_lock:
+                self._active -= 1
+
+    async def _create_or_replay_reserved(self, case: ClinicalCase, run_id: str) -> tuple[RunView, bool]:
         try:
             manager = PersistentStateManager(case, self.repository, run_id=run_id)
         except DuplicateRun:
@@ -115,8 +131,6 @@ class RunService:
             raise ApiError("INVALID_INPUT") from None
         except Exception as exc:
             raise _storage_error(exc) from None
-        with self._active_lock:
-            self._active += 1
         try:
             if self._executor is not None:
                 final = await self._executor.run(self._runner_factory(), manager)
@@ -128,9 +142,6 @@ class RunService:
         except Exception as exc:
             # The store keeps the last persisted revision; recovery or a retry resolves it.
             raise _storage_error(exc) from None
-        finally:
-            with self._active_lock:
-                self._active -= 1
         return RunView.of(final), False
 
     def _authorized_state(self, principal: Principal, run_id: str, request_id: str, action: str) -> State:
