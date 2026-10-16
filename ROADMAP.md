@@ -8,3 +8,5 @@
 6. P6: Knowledge/AI Engine con fuentes autorizadas, evaluación y revisión experta antes de reglas clínicas o recomendaciones.
 
 Recuperar el código histórico es una tarea paralela opcional: si aparece, conservarlo separado y comparar contratos antes de integrar. No bloquear los pasos independientes.
+
+Actualización P2: paquete 2 implementado; próximo P3.

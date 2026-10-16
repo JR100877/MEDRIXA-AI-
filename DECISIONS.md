@@ -20,3 +20,7 @@ RLock para modificaciones en un proceso, revisión esperada para evitar actualiz
 
 - Pydantic, modelos y validación estricta: https://github.com/pydantic/pydantic/blob/main/docs/concepts/models.md y https://github.com/pydantic/pydantic/blob/main/docs/concepts/strict_mode.md (consulta 2026-10-15). Justifican revalidar entradas y evitar considerar model_copy/model_construct una validación.
 - Python asyncio: https://docs.python.org/3/library/asyncio-task.html (consulta 2026-10-15). Para el siguiente paquete, los tiempos de espera serán cooperativos; no se prometerá detener código bloqueante o no confiable.
+
+## ADR-005 — Ejecución asíncrona acotada
+
+Agentes locales explícitos, dos pasos por defecto, sin descubrimiento de plugins, red ni reintentos automáticos. No se reintentan efectos no idempotentes. Cada ejecución posee un StateManager exclusivo; no se permite reiniciar una instancia usada. Las excepciones de agentes se convierten en códigos sin copiar mensajes al estado. CancelledError se registra y se propaga. Los timeouts de asyncio son cooperativos, no sandbox ni límite duro.

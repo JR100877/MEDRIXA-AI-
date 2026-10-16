@@ -2,20 +2,21 @@
   "project": "MEDRIXA AI",
   "implementation_line": "provisional-2026-10-15",
   "historical_version": null,
-  "phase": "P1_CORE_CONTRACTS",
+  "phase": "P2_AGENT_ENGINE",
   "status": "tested_provisional",
   "code_origin": "new_authorized_provisional",
   "historical_code_recovered": false,
-  "next_task": "P2: implement Planner, Router, Orchestrator and synthetic History/Clinical agents",
+  "next_task": "P3: schema export, runnable synthetic demo, contract hardening and final integration evidence",
   "clinical_validation": "not_performed",
   "production_allowed": false,
   "completed_packages": [
     "P0",
-    "P1"
+    "P1",
+    "P2"
   ],
   "tests": {
-    "command": "python -m unittest tests.core.test_state -v",
-    "passed": 17,
+    "P1_passed": 17,
+    "P2_passed": 22,
     "failed": 0
   }
 }

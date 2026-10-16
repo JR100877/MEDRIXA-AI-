@@ -30,3 +30,7 @@ Estado inicial `created` → `running` → `awaiting_human_review`. No existe tr
 | Interface | CLI prevista; frontend y API FastAPI pendientes |
 
 MEDRIXA sigue independiente; ningún módulo importa NEXARIS ni necesita otro proyecto.
+
+## Implementación P2
+
+`Planner.create_plan(state)` devuelve Plan validado sin efectos; `Router.resolve(step)` devuelve un agente del registro sin ejecutarlo. Orchestrator crea AgentContext, espera al agente, valida/correlaciona AgentResult y delega transiciones al StateManager. HistoryAgent y ClinicalAgent comprueban presencia de datos; nunca interpretan valores ni generan diagnósticos. Todos los recorridos válidos terminan en revisión humana.

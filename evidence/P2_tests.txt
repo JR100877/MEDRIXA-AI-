@@ -1,0 +1,27 @@
+test_clinical_only_reports_completeness (tests.test_agents.AgentTests.test_clinical_only_reports_completeness) ... ok
+test_history_present_and_missing (tests.test_agents.AgentTests.test_history_present_and_missing) ... ok
+test_wrong_agent_rejected (tests.test_agents.AgentTests.test_wrong_agent_rejected) ... ok
+test_agent_exception_is_sanitized (tests.core.test_engine.OrchestratorTests.test_agent_exception_is_sanitized) ... ok
+test_agent_failure_stops_following_agent (tests.core.test_engine.OrchestratorTests.test_agent_failure_stops_following_agent) ... ok
+test_bad_planner_output_and_exception (tests.core.test_engine.OrchestratorTests.test_bad_planner_output_and_exception) ... ok
+test_cancellation_is_recorded_and_propagated (tests.core.test_engine.OrchestratorTests.test_cancellation_is_recorded_and_propagated) ... ok
+test_end_to_end_requires_human_review (tests.core.test_engine.OrchestratorTests.test_end_to_end_requires_human_review) ... ok
+test_independent_concurrent_cases (tests.core.test_engine.OrchestratorTests.test_independent_concurrent_cases) ... ok
+test_invalid_result_and_scope_rejected (tests.core.test_engine.OrchestratorTests.test_invalid_result_and_scope_rejected) ... ok
+test_missing_history_dispatches_nothing (tests.core.test_engine.OrchestratorTests.test_missing_history_dispatches_nothing) ... ok
+test_missing_observations_abstains (tests.core.test_engine.OrchestratorTests.test_missing_observations_abstains) ... ok
+test_repeated_plan_does_not_loop (tests.core.test_engine.OrchestratorTests.test_repeated_plan_does_not_loop) ... ok
+test_step_limit (tests.core.test_engine.OrchestratorTests.test_step_limit) ... ok
+test_timeout_ends_in_review (tests.core.test_engine.OrchestratorTests.test_timeout_ends_in_review) ... ok
+test_unknown_route_fails_closed (tests.core.test_engine.OrchestratorTests.test_unknown_route_fails_closed) ... ok
+test_used_manager_never_reset (tests.core.test_engine.OrchestratorTests.test_used_manager_never_reset) ... ok
+test_invalid_plan_combinations_rejected (tests.core.test_engine.PlannerRouterTests.test_invalid_plan_combinations_rejected) ... ok
+test_missing_history_requests_information (tests.core.test_engine.PlannerRouterTests.test_missing_history_requests_information) ... ok
+test_planner_is_pure_and_history_first (tests.core.test_engine.PlannerRouterTests.test_planner_is_pure_and_history_first) ... ok
+test_router_has_no_execution_and_copies_registry (tests.core.test_engine.PlannerRouterTests.test_router_has_no_execution_and_copies_registry) ... ok
+test_wrong_step_and_sync_agent_rejected (tests.core.test_engine.PlannerRouterTests.test_wrong_step_and_sync_agent_rejected) ... ok
+
+----------------------------------------------------------------------
+Ran 22 tests in 0.049s
+
+OK
