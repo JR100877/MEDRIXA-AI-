@@ -52,3 +52,12 @@ Endurecimiento de seguridad en incrementos:
 Contratos: los códigos de error `RATE_LIMITED` y `CAPACITY_EXCEEDED` y el 429 documentado son aditivos, y cambió la descripción del esquema de seguridad. Los contratos de dominio no cambiaron.
 
 Se corrigieron dos fixtures de prueba intermitentes (firma "alterada" que podía coincidir con la real). Hay 92 pruebas nuevas y la regresión da 305 (1 omitida como root, verificada como usuario no privilegiado). Sin despliegue, sin IdP real, sin validación clínica. Siguiente: P8 (`docs/NEXT_PACKAGE.md`).
+
+## P8 — 2026-10-16 (Colombia), rama `dev/p8-observability` (base `dev/p7-security` @ 19d279b)
+
+- **P8.1:** puerto de métricas con registro en memoria acotado y exposición Prometheus. `/v1/metrics` exige el permiso nuevo `metrics:read`, solo para el operador.
+- **P8.2:** sonda `/v1/ready` sin detalles, con ganchos opcionales `ping()` y `ready()`.
+- **P8.3:** correlación por `request_id` en registros operativos JSON.
+- **P8.4:** prueba de carga local reproducible. Su hallazgo: la E/S síncrona de PostgreSQL serializa el bucle de eventos (ADR-030).
+
+Cambios aditivos: el código `NOT_READY`, `ReadyView` y dos rutas nuevas en OpenAPI. Sin dependencias nuevas. 21 pruebas nuevas; regresión 326 (1 omitida como root, verificada como no root). Siguiente: P9 (`docs/NEXT_PACKAGE.md`).

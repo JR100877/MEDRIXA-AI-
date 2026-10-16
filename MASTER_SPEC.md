@@ -48,6 +48,12 @@ Sigue prohibido: fusionar a la rama predeterminada, reescribir commits publicado
 - R25: PostgreSQL de mínimo privilegio, migraciones controladas y pool justificado por medición.
 - R26: TLS y cifrado en reposo documentados como requisitos de despliegue, con responsabilidades y límites.
 
+## Requisitos P8 (misma autorización; identificador propuesto)
+
+- R27: observabilidad independiente del proveedor: métricas sin datos clínicos ni identificadores, con acceso restringido.
+- R28: sonda de preparación sin revelar detalles internos.
+- R29: correlación de registros por identificador de solicitud y medición reproducible de rendimiento.
+
 ## Exclusiones del incremento
 
 Autenticación productiva, cifrado persistente, aislamiento de código no confiable, validación clínica, regulación, FHIR conforme, modelos LLM/ML y bases de conocimiento médicas. No se declararán implementados.

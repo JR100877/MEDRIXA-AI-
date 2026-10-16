@@ -29,3 +29,5 @@ Actualización P5: **P5 está implementado** en `dev/p5-postgres` (PostgreSQL pr
 Actualización P6: **P6 está implementado** en `dev/p6-leases` (arrendamientos con latido, guarda de escritura y recuperación que respeta ejecuciones vivas; 213 pruebas). No está fusionado. Sigue P7, endurecimiento de seguridad (propuesta): requiere decisiones humanas sobre el proveedor de identidad y la gestión de secretos.
 
 Actualización P7 (16/10): **P7 está implementado** en `dev/p7-security`, con 305 pruebas y sin fusionar. Quedan **bloqueados** por decisión humana: el proveedor de identidad, el gestor de secretos, el cifrado en reposo, el modelo de multi-tenancy y los valores operativos definitivos. El siguiente es P8, observabilidad (propuesta; ver `docs/NEXT_PACKAGE.md`).
+
+Actualización P8 (16/10): **P8 está implementado** en `dev/p8-observability`, con 326 pruebas y sin fusionar. Siguiente propuesta: P9, sacar la ejecución del ciclo HTTP, justificado por la medición de ADR-030.

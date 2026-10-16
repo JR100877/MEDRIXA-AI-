@@ -2,16 +2,16 @@
   "project": "MEDRIXA AI",
   "session_date_bogota": "2026-10-16",
   "implementation_line": "provisional-2026-10-15",
-  "branch": "dev/p7-security",
-  "base_branch": "dev/p6-leases",
-  "base_commit": "5a6cd317794c91f91a7bea42f7fb06df5b427661",
+  "branch": "dev/p8-observability",
+  "base_branch": "dev/p7-security",
+  "base_commit": "19d279ba8faaa56272172976f42252f4b07a07e0",
   "remote": "https://github.com/JR100877/MEDRIXA-AI-",
-  "merge_status": "Nothing merged. P4, P4b, P5, P6 and P7 are unmerged development branches; merging into the default branch requires Robinson's authorization.",
+  "merge_status": "Nothing merged. P4 through P8 are unmerged development branches; merging into the default branch requires Robinson's authorization.",
   "historical_version": null,
   "historical_code_recovered": false,
   "code_origin": "new_authorized_provisional",
   "compatibility_with_historical_fields": "not_verified",
-  "phase": "P7_SECURITY_HARDENING",
+  "phase": "P8_OBSERVABILITY",
   "status": "tested_provisional",
   "completed_packages": [
     "P0",
@@ -22,7 +22,8 @@
     "P4b",
     "P5",
     "P6",
-    "P7"
+    "P7",
+    "P8"
   ],
   "implemented": [
     "ClinicalCase",
@@ -67,7 +68,11 @@
     "rate limiting per client address and per identity; execution capacity limit",
     "PostgreSQL least privilege (pg_admin migrate/grant; schema verification)",
     "PostgreSQL connection pool (psycopg-pool; measured)",
-    "docs/SECURITY.md threat model"
+    "docs/SECURITY.md threat model",
+    "metrics port + bounded in-memory registry + Prometheus exposition (/v1/metrics, operator only)",
+    "readiness probe /v1/ready (store, schema, token keys, audit)",
+    "request_id correlation in JSON operational logs",
+    "reproducible local load test (scripts/load_test.py)"
   ],
   "not_implemented": [
     "deployment (not authorized)",
@@ -90,40 +95,45 @@
     "P6: PostgreSQL migration v2 adds medrixa_run_leases (additive)",
     "P7: HTTP error codes RATE_LIMITED (429) and CAPACITY_EXCEEDED (503) added; 429 documented on all routes (additive)",
     "P7: OpenAPI bearerAuth description text updated; domain contracts unchanged",
-    "P7: PostgresStateRepository(pool_size, verify) and PostgresRunLeases(repository) parameters (additive)"
+    "P7: PostgresStateRepository(pool_size, verify) and PostgresRunLeases(repository) parameters (additive)",
+    "P8: GET /v1/ready and GET /v1/metrics; NOT_READY error code; ReadyView; operator gains metrics:read (additive)"
   ],
   "tests": {
     "command": "python -m unittest discover -s tests -t . -v",
-    "passed": 304,
+    "passed": 325,
     "failed": 0,
     "errors": 0,
     "skipped": 1,
-    "evidence": "evidence/P7_regression.txt",
-    "focused_evidence": "evidence/P7_tests.txt",
+    "evidence": "evidence/P8_regression.txt",
+    "focused_evidence": "evidence/P8_tests.txt",
     "previous_evidence": [
+      "evidence/P7_regression.txt",
       "evidence/P6_regression.txt",
       "evidence/P5_regression.txt",
       "evidence/P4b_regression.txt",
       "evidence/P4_regression.txt",
       "evidence/P3_regression.txt"
     ],
-    "mutation_checks": "P4: 4/4; P4b: 8/8; P5: 4/4; P6: 6/6; P7: 18/19 (the surviving crit-header mutation is also enforced by PyJWT)",
+    "mutation_checks": "P4: 4/4; P4b: 8/8; P5: 4/4; P6: 6/6; P7: 18/19 (crit redundant with PyJWT); P8: 8/8",
     "static_analysis": "ruff 0.16.8 E,F,W,B,S clean; mypy 2.4.0 (pydantic plugin, check_untyped_defs) 0 findings",
     "source_manifest": "evidence/SOURCE_MANIFEST.json",
-    "postgres_tests_without_server": "skipped explicitly (MEDRIXA_TEST_PG=off -> OK skipped=92)",
-    "total": 305,
-    "p0_p6_tests": 213,
-    "new_p7_tests": 92,
+    "postgres_tests_without_server": "skipped explicitly (MEDRIXA_TEST_PG=off -> OK skipped=93)",
+    "total": 326,
     "skipped_detail": "tests.security.test_secrets unreadable-file test skips as root; executed separately as an unprivileged user: passed",
     "dependency_audit": "pip-audit 2.10.1, 26 pinned packages, no known vulnerabilities (2026-10-16): evidence/P7_dependency_audit.json",
-    "measurements": "evidence/P7_latency.json",
-    "flaky_tests_fixed": "tampered-signature fixtures (P4b HMAC, P7 OIDC)"
+    "measurements": [
+      "evidence/P7_latency.json",
+      "evidence/P8_load.json"
+    ],
+    "flaky_tests_fixed": "tampered-signature fixtures (P4b HMAC, P7 OIDC)",
+    "p0_p7_tests": 305,
+    "new_p8_tests": 21
   },
   "runtime": {
     "python": "3.13.16",
     "python_p1_p3": "3.12.14",
     "lock": "requirements-lock.txt",
-    "environment_evidence": "evidence/P7_environment.json"
+    "environment_evidence": "evidence/P8_environment.json"
   },
   "documentation": [
     "MASTER_SPEC.md",
@@ -142,14 +152,14 @@
     "docs/NEXT_PACKAGE.md",
     "docs/SECURITY.md"
   ],
-  "next_task": "P8 (proposed): provider-independent observability (metrics port, request-id propagation, readiness endpoint, reproducible local load tests)",
+  "next_task": "P9 (proposed): move run execution off the HTTP event loop (measured: synchronous DB I/O serialises it, ADR-030); evaluate thread-offload first, then 202 + worker (versioned contract), async persistence last",
   "next_task_spec": "docs/NEXT_PACKAGE.md",
   "blocked_on_historical_files": false,
   "clinical_validation": "not_performed",
   "production_allowed": false,
   "real_patient_data_allowed": false,
   "pending": [
-    "merge authorization for dev/p4-persistence, dev/p4b-http, dev/p5-postgres, dev/p6-leases and dev/p7-security",
+    "merge authorization for dev/p4-persistence ... dev/p8-observability",
     "metrics/tracing, audit retention (P8)",
     "integration/deployment readiness without production (P9)",
     "background execution instead of in-request runs",
@@ -159,7 +169,6 @@
     "expert clinical validation",
     "real IdP integration, secrets manager, encryption at rest, multi-tenancy (blocked decisions, docs/SECURITY.md §4)",
     "shared rate limiter",
-    "observability (P8)",
     "background execution outside HTTP (P9)"
   ],
   "known_limits": [
@@ -179,7 +188,9 @@
     "HMAC tokens remain for development/test only",
     "rate limits and capacity are per process",
     "psycopg.pool logs may include host/user/dbname (never passwords)",
-    "single organization enforced; no tenant column yet"
+    "single organization enforced; no tenant column yet",
+    "synchronous psycopg calls block the event loop: PostgreSQL throughput ~45-48 req/s flat from 1 to 8 clients (evidence/P8_load.json)",
+    "metrics are per process and in memory (no OpenTelemetry export yet)"
   ],
   "resume_rule": "Read this file, TEST_STATUS and NEXT_PACKAGE; verify source manifest. Do not repeat historical audits or complete tests unless code changes or concrete risk requires it.",
   "branch_lineage": [
@@ -188,7 +199,8 @@
     "dev/p4b-http @ 3c60ceb1cf62d4ab8c2879e6b23755421082a93e (P4b)",
     "dev/p5-postgres @ e6022d59f6083ef4a918760431b03969c940c54b (P5)",
     "dev/p6-leases @ 5a6cd317794c91f91a7bea42f7fb06df5b427661 (P6)",
-    "dev/p7-security (P7, this branch)"
+    "dev/p7-security @ 19d279ba8faaa56272172976f42252f4b07a07e0 (P7)",
+    "dev/p8-observability (P8, this branch)"
   ],
   "authorization": "Desarrollo autónomo supervisado, Robinson: 2026-10-15 21:39 (P4b-P6) and 2026-10-16 06:17 (P7+) — MASTER_SPEC.md R14-R26",
   "files_p4b": [
@@ -281,5 +293,25 @@
     "tests/persistence/test_pg_pool.py",
     "tests/persistence/pg_support.py",
     "docs/SECURITY.md"
+  ],
+  "files_p8": [
+    "app/observability/metrics.py",
+    "app/observability/context.py",
+    "app/web/app.py",
+    "app/web/service.py",
+    "app/web/policy.py",
+    "app/web/contracts.py",
+    "app/web/errors.py",
+    "app/web/auth.py",
+    "app/web/oidc.py",
+    "app/web/audit.py",
+    "app/web/__main__.py",
+    "app/persistence/repository.py",
+    "app/persistence/local_file.py",
+    "app/persistence/postgres.py",
+    "app/persistence/leasing.py",
+    "scripts/load_test.py",
+    "contracts/http/openapi.v1.json",
+    "tests/observability/*"
   ]
 }

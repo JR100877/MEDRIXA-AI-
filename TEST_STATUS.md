@@ -172,3 +172,38 @@ Entorno: Python 3.13.16 y PostgreSQL 16.15 efímero local (`evidence/P7_environm
 - **pip-audit 2.10.1:** 26 dependencias fijadas, sin vulnerabilidades conocidas (`evidence/P7_dependency_audit.json`).
 
 **Mediciones:** `evidence/P7_latency.json` (ver `docs/PERSISTENCE.md`).
+
+## P8 — observabilidad (rama `dev/p8-observability`)
+
+**Pruebas nuevas: 21.** Evidencia focalizada en `evidence/P8_tests.txt`.
+
+- **Registro (6):** semántica de contadores, gauges e histogramas (cubetas acumulativas, `+Inf` = conteo, suma). Las actualizaciones inválidas se descartan sin propagar excepciones (etiquetas erróneas, métrica desconocida, contador negativo, tipo equivocado, NaN). También el escape de etiquetas, el límite de series (1000 intentos → 10 series y 990 descartadas), 16 hilos × 1000 incrementos exactos y un colector que falla sin romper la exposición. El formato se valida con un analizador estricto.
+- **HTTP (3):** conteo por plantilla de ruta (`/v1/runs/{run_id}`, `unrouted`), resultados CREATED/REPLAYED, razón de parada, fallos de autenticación, ejecuciones activas y **ausencia de run_id, sujeto, caso, observaciones y secreto** en la salida. Contadores de límite de tasa. `/v1/metrics`: 401 sin token, 403 para runner y reviewer, 200 para el operador con el tipo de contenido Prometheus.
+- **Preparación (6):** lista con memoria; no lista con logger de auditoría sin configurar, con almacén que falla (sin filtrar el detalle), con el directorio del almacén borrado, con el JWKS caído (y recuperación) y con PostgreSQL tras `DROP DATABASE`. Gauges del pool con PostgreSQL.
+- **Arrendamientos y recuperación (2):** renovaciones y pérdidas contadas; resultados de recuperación contados.
+- **Contrato (1):** `ping()` es opcional para adaptadores de terceros.
+- **Correlación (3):** líneas JSON con y sin contexto, la auditoría no se mezcla, y **el aviso de OIDC emitido en el hilo de autenticación lleva el `request_id` de la petición**, sin el token ni la URL del JWKS.
+
+**Expectativas actualizadas a propósito:** la matriz de roles (el operador gana `metrics:read`) y las rutas públicas en la prueba de OpenAPI (se añade `/v1/ready`).
+
+**Regresión completa:** 326 pruebas, 0 fallos, 0 errores, 1 omitida (como root; **pasa como usuario no privilegiado**, comprobado de nuevo). Evidencia: `evidence/P8_regression.txt`.
+- Se repitió 3 veces sin fallos.
+- También pasa con las advertencias como errores (salvo la de terceros documentada).
+- Con `MEDRIXA_TEST_PG=off` el resultado es `OK (skipped=93)`.
+
+**Mutaciones de P8: 8 de 8 detectadas:** ruta cruda como etiqueta, métricas sin permiso, preparación sin auditoría, preparación sin almacén, histograma no acumulativo, sin límite de series, sin escape de etiquetas y sin propagación de `request_id`. La de escape se repitió porque el primer intento no llegó a aplicarse por un error de comillas en el script.
+
+**Carga** (`evidence/P8_load.json`, `scripts/load_test.py`, 400 peticiones por escenario):
+
+| Almacén | Clientes | req/s | p50 ms | p95 ms | Estados |
+|---|---|---|---|---|---|
+| memory max_active_runs=16 | 1 | 188.2 | 5.27 | 7.18 | {'201': 400} |
+| memory max_active_runs=16 | 8 | 256.9 | 29.74 | 45.9 | {'201': 400} |
+| memory max_active_runs=16 | 32 | 352.4 | 84.76 | 136.28 | {'201': 296, '503': 104} |
+| memory max_active_runs=4 (saturation) | 32 | 609.4 | 49.52 | 72.0 | {'201': 73, '503': 327} |
+| postgresql-pool4 max_active_runs=16 | 1 | 47.8 | 20.2 | 28.28 | {'201': 400} |
+| postgresql-pool4 max_active_runs=16 | 8 | 45.2 | 178.95 | 215.25 | {'201': 400} |
+| postgresql-pool4 max_active_runs=16 | 32 | 71.1 | 423.78 | 626.37 | {'201': 228, '503': 172} |
+| postgresql-pool4 max_active_runs=4 (saturation) | 32 | 91.1 | 333.27 | 621.8 | {'201': 180, '503': 220} |
+
+Interpretación en ADR-030: la E/S síncrona de PostgreSQL serializa el bucle de eventos.

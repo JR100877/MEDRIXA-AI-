@@ -11,6 +11,8 @@ Estado: **adaptador FastAPI local implementado y probado**, solo con datos sint�
 | `GET /v1/runs/{run_id}` | `runs:read` + caso en alcance | 200 `RunView` |
 | `GET /v1/runs/{run_id}/events` | `runs:read` + caso en alcance | 200 `RunEventsView` (secuencia, tipo, hora y motivo) |
 | `POST /v1/admin/recovery` | `runs:recover` | 200 `RecoveryView` (solo contadores) |
+| `GET /v1/ready` (P8) | ninguno | 200 `ReadyView` o 503 `NOT_READY` (sin detalles) |
+| `GET /v1/metrics` (P8) | `metrics:read` (operador) | Texto Prometheus 0.0.4; solo agregados, sin identificadores |
 
 Las respuestas nunca incluyen observaciones ni hallazgos. Todo resultado lleva `human_review_required: true`, y no existe un endpoint ni un permiso de aprobación clínica.
 
@@ -42,7 +44,7 @@ Las respuestas nunca incluyen observaciones ni hallazgos. Todo resultado lleva `
 |---|---|---|
 | `case_runner` | `runs:create`, `runs:read` | casos del token |
 | `case_reviewer` | `runs:read` | casos del token |
-| `operator` | `runs:recover` | ninguno: no lee ejecuciones |
+| `operator` | `runs:recover`, `metrics:read` (P8) | ninguno: no lee ejecuciones |
 
 - **Accesos cruzados:** leer una ejecución de un caso fuera de alcance responde **404 idéntico** al de una ejecución inexistente, para no revelar su existencia.
 - **Permiso ausente:** sin el permiso de lectura, la respuesta es 403 antes de consultar el almacén.
@@ -77,6 +79,7 @@ Todos los errores usan el mismo sobre: `{"api_version":"medrixa.http.v1","error"
 | METHOD_NOT_ALLOWED | 405 | INTERNAL_ERROR / STORE_INTEGRITY_ERROR | 500 |
 | CONFLICT | 409 | STORE_UNAVAILABLE / AUDIT_UNAVAILABLE | 503 |
 | RATE_LIMITED (P7.3, con `Retry-After`) | 429 | CAPACITY_EXCEEDED (P7.3, con `Retry-After`) | 503 |
+| | | NOT_READY (P8, con `Retry-After`) | 503 |
 
 ## Seguridad por defecto
 
@@ -106,3 +109,10 @@ Todos los errores usan el mismo sobre: `{"api_version":"medrixa.http.v1","error"
 - **Por identidad** (organización + sujeto), después de autenticar: `MEDRIXA_RATE_LIMIT_SUBJECT_PER_MINUTE` (120).
 - **Ejecuciones simultáneas por proceso:** `MEDRIXA_MAX_ACTIVE_RUNS` (16). La plaza se reserva antes de crear la ejecución; si no hay plaza, la respuesta es 503 `CAPACITY_EXCEEDED` sin crear nada.
 - **Alcance:** los límites son por proceso, con memoria acotada (10 000 claves, LRU). Con varias réplicas, el límite debe aplicarse en el gateway o con un adaptador compartido (PROPUESTO).
+
+## Observabilidad (P8)
+
+- **Métricas** (`app/observability/metrics.py`): peticiones y latencia por plantilla de ruta, rechazos por límite (dirección o identidad), fallos de autenticación, rechazos por capacidad, resultados de creación y razones de parada, renovaciones y pérdidas de arrendamiento, resultados de recuperación, fallos de auditoría, ejecuciones activas y conexiones del pool (abiertas, ociosas y en espera). Etiquetas acotadas, sin identificadores.
+- **Preparación** (`/v1/ready`): almacén alcanzable y con esquema, claves de verificación disponibles y auditoría configurada.
+- **Registros operativos:** líneas JSON en stderr con `request_id`, configuradas por `serve`.
+- **Carga medida** (`evidence/P8_load.json`, un proceso, sin red): en memoria, 188 req/s con 1 cliente y 352 con 32. Con PostgreSQL y pool, ~45–71 req/s, limitado por la E/S síncrona en el bucle de eventos (ADR-030).

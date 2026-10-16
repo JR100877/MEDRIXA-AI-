@@ -88,3 +88,9 @@ Estos requisitos **no están implementados en MEDRIXA** y bloquean cualquier des
 - Un dueño de la base de datos puede desactivar triggers y reescribir instantáneas y eventos de forma coherente. Solo una firma o un almacenamiento externo inmutable lo impediría (PROPUESTO).
 - **Dependencias:** las 26 versiones fijadas en `requirements-lock.txt` se auditaron con pip-audit 2.10.1 contra el servicio de vulnerabilidades de PyPI el 16/10/2026, sin vulnerabilidades conocidas (`evidence/P7_dependency_audit.json`). Es una foto de esa fecha: debe repetirse periódicamente. La auditoría no cubre hashes, porque el bloqueo no los fija.
 - No hubo auditoría de seguridad externa, pruebas de penetración ni prueba con un IdP real.
+
+## Adiciones de P8
+
+- `/v1/metrics` exige `metrics:read`, que solo tiene el operador, y expone únicamente agregados con etiquetas acotadas. Una prueba verifica que no aparecen identificadores de ejecución, sujeto o caso, ni observaciones o secretos.
+- `/v1/ready` es pública por diseño (sondas) y no revela la causa del fallo. Está sujeta al límite por dirección.
+- Los registros operativos llevan `request_id` y mensajes constantes; no incluyen tokens ni URLs con credenciales (verificado en pruebas).

@@ -28,5 +28,8 @@
 | R24 límites | security/ratelimit.py; web/app.py; web/service.py | TokenBucketTests; HttpRateLimitTests; CapacityTests; mutaciones P7.3 |
 | R25 PostgreSQL de mínimo privilegio y pool | persistence/pg_admin.py; postgres.py | AppRole*ContractTests; PrivilegeBoundaryTests; AdminCliTests; Pooled*ContractTests; PoolBehaviourTests; evidence/P7_latency.json |
 | R26 requisitos de despliegue | docs/SECURITY.md | Inspección documental (no automatizable) |
+| R27 métricas | observability/metrics.py; web/app.py; policy `metrics:read` | RegistryTests; HttpMetricsTests (sin identificadores; solo operador); mutaciones P8 |
+| R28 preparación | `/v1/ready`; ganchos `ping()` y `ready()` | ReadinessTests (auditoría, almacén, directorio, JWKS, PostgreSQL eliminado) |
+| R29 correlación y carga | observability/context.py; scripts/load_test.py | OperationalLoggingTests (hilo de autenticación); evidence/P8_load.json |
 
 Se distingue evidencia automatizada de inspección: independencia y ausencia de servicios externos se constatan en las fuentes, no mediante una certificación de seguridad.

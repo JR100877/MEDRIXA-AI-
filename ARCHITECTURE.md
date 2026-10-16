@@ -123,3 +123,17 @@ El núcleo de dominio no cambió. Los nuevos componentes son puertos y adaptador
 | Identity | OIDC/JWT probado con JWKS local; organización única | IdP real (BLOQUEADO); revocación; multi-tenancy (BLOQUEADO) |
 | Security | Secretos por archivo; límites de tasa y capacidad; mínimo privilegio en la base; tipado estricto; auditoría de dependencias | Gestor de secretos y cifrado en reposo (BLOQUEADO); TLS en el despliegue; limitador compartido |
 | Persistence | Pool medido y probado | Driver asíncrono; respaldos |
+
+## Observabilidad P8
+
+```
+middleware ─► request_id (ContextVar) ─► logs JSON medrixa.* (filtro) ;  métricas HTTP (plantilla de ruta)
+RunService / LeasedExecutor / recuperación ─► Metrics (puerto) ─► InMemoryMetrics ─► GET /v1/metrics (operador)
+                                                                 └─ adaptador OpenTelemetry [PROPUESTO]
+GET /v1/ready ─► repository.ping() · authenticator.ready() · audit.ready()
+```
+
+| Área | Tras P8 | Pendiente |
+|---|---|---|
+| Observability | Métricas acotadas, preparación, correlación y carga medida | Trazas distribuidas y adaptador OpenTelemetry; retención |
+| Ejecución | Medido: la E/S síncrona de la base serializa el bucle | Ejecución fuera del ciclo HTTP o persistencia asíncrona (P9) |

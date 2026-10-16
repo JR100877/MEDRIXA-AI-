@@ -95,6 +95,8 @@ MEDRIXA_PG_ADMIN_DSN_FILE=/run/secrets/pg_owner python -m app.persistence.pg_adm
 export MEDRIXA_PG_DSN_FILE=/run/secrets/pg_app MEDRIXA_PG_MIGRATE=false MEDRIXA_PG_POOL_SIZE=4
 ```
 
+Observabilidad (P8): `GET /v1/ready` (sonda pública), `GET /v1/metrics` (texto Prometheus, solo operador), registros JSON con `request_id`, y `python -m scripts.load_test` para medir carga en local.
+
 Límites configurables: `MEDRIXA_RATE_LIMIT_IP_PER_MINUTE`, `MEDRIXA_RATE_LIMIT_SUBJECT_PER_MINUTE`, `MEDRIXA_MAX_ACTIVE_RUNS`. **No es apto para producción**: ver los requisitos de despliegue y las decisiones bloqueadas en `docs/SECURITY.md`.
 
 No hay despliegue, motor clínico validado, FHIR implementado ni integración LLM/ML. La próxima tarea exacta está en `CONTINUITY.json` y `docs/NEXT_PACKAGE.md`.

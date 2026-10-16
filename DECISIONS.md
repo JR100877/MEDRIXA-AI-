@@ -117,3 +117,23 @@ Medido en este equipo (`evidence/P7_latency.json`): abrir una conexión costaba 
 ## ADR-026 — TTL de arrendamiento de 30 s, aún provisional, ahora con datos
 
 La renovación tarda ≤~11 ms en p99 sin pool y ~1 ms con pool, frente a un latido cada 10 s. El margen es de unas mil veces, así que 30 s no se cambia. El valor definitivo depende de la operación real y sigue pendiente de la decisión de Robinson.
+
+## ADR-027 — Métricas por puerto propio con exposición Prometheus; OpenTelemetry como adaptador futuro (P8.1)
+
+FastAPI 0.143 arrastra `opentelemetry-api`, pero sin SDK es un no-op y exportar exige SDK y exportador, que es una decisión de despliegue. Se adopta un puerto `Metrics` con registro en memoria y exposición en texto Prometheus 0.0.4, **sin dependencias nuevas**:
+- **Métricas declaradas de antemano** con etiquetas acotadas: plantillas de ruta, códigos y razones enumeradas. **Nunca** identificadores de caso, ejecución o sujeto.
+- **Memoria acotada** (`max_series`), y el registro nunca propaga excepciones.
+- **Exposición:** `GET /v1/metrics` requiere el permiso nuevo `metrics:read`, solo para el operador.
+- **OpenTelemetry:** un adaptador sobre el mismo puerto queda PROPUESTO.
+
+## ADR-028 — Sonda de preparación pública y sin detalles (P8.2)
+
+`GET /v1/ready` es pública, igual que `/v1/health`, porque la usan las sondas de orquestación. Responde 200 o 503 `NOT_READY` con `Retry-After` y mensaje constante, sin revelar qué falló. Comprueba el almacén (`ping()`: directorio escribible, o base alcanzable con esquema migrado), las claves de verificación (JWKS en OIDC) y que la auditoría esté configurada. Los ganchos `ping()` y `ready()` no son abstractos, así que los adaptadores de terceros no se rompen.
+
+## ADR-029 — Correlación por `request_id` mediante una variable de contexto (P8.3)
+
+El middleware fija el `request_id` y siempre lo restablece en `finally`. Un filtro de logging lo añade a todo el árbol `medrixa.*`, incluso en el hilo de autenticación. Los registros operativos salen en líneas JSON con mensajes constantes y no se mezclan con la auditoría.
+
+## ADR-030 — La E/S síncrona de la base serializa el bucle de eventos: medido, a resolver en P9 (P8.4)
+
+Prueba de carga local (`evidence/P8_load.json`): con PostgreSQL y pool, el rendimiento se queda en ~45–48 req/s entre 1 y 8 clientes, y la latencia p50 crece de forma lineal (20 → 179 ms). En memoria escala de 188 a 352 req/s. La causa son las llamadas síncronas de psycopg dentro de la ejecución asíncrona. No se corrige en P8 porque exige separar la ejecución del ciclo HTTP o hacer asíncrono el puerto de persistencia, un cambio de arquitectura que debe preservar la idempotencia, el fencing y el no reintento. Es la prioridad técnica de P9. `MEDRIXA_MAX_ACTIVE_RUNS=16` se mantiene: en la medición protege como se diseñó (rechaza con 503 en vez de degradar a todos).

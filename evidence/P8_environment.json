@@ -1,0 +1,10 @@
+{
+  "package": "P8",
+  "python": "3.13.16",
+  "platform": "Linux-6.18.44-fc-v139-x86_64-with-glibc2.39",
+  "postgresql_server": "16.15 ephemeral local cluster",
+  "new_dependencies": [],
+  "opentelemetry": "opentelemetry-api 1.44.0 present (FastAPI dependency) without SDK: no-op; not used",
+  "load_test": "in-process ASGI via httpx.ASGITransport; no network, no TLS; synthetic agents",
+  "network_used_by_application": false
+}
