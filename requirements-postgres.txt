@@ -1,0 +1,3 @@
+-r requirements.txt
+# P5: PostgreSQL adapter (optional; imported only when MEDRIXA_PG_DSN is set)
+psycopg[binary]==3.3.6

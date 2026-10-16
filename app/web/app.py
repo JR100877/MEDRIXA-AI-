@@ -55,7 +55,10 @@ def create_app(settings: Settings, repository: StateRepository | None = None,
                runner_factory=None) -> FastAPI:
     settings = Settings.model_validate(settings)
     if repository is None:
-        if settings.store_dir is not None:
+        if settings.postgres_dsn is not None:
+            from app.persistence.postgres import PostgresStateRepository
+            repository = PostgresStateRepository(settings.postgres_dsn.get_secret_value())
+        elif settings.store_dir is not None:
             from app.persistence.local_file import ProvisionalLocalFileRepository
             repository = ProvisionalLocalFileRepository(settings.store_dir)
         else:

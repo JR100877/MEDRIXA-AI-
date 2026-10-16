@@ -35,7 +35,13 @@ def main(argv):
     history = HangingHistoryAgent(Path(argv[3])) if mode == "hang" else HistoryAgent()
     runner = Orchestrator(Planner(), Router({"history_analysis": history, "clinical_analysis": ClinicalAgent()}),
                           ExecutionLimits(agent_timeout_seconds=60))
-    manager = PersistentStateManager(case(case_id), ProvisionalLocalFileRepository(store))
+    if store.startswith("pgdsn-env:"):  # P5: DSN passed through an environment variable, never argv
+        import os
+        from app.persistence.postgres import PostgresStateRepository
+        repository = PostgresStateRepository(os.environ[store.split(":", 1)[1]], migrate=False)
+    else:
+        repository = ProvisionalLocalFileRepository(store)
+    manager = PersistentStateManager(case(case_id), repository)
     print(manager.run_id, flush=True)
     final = asyncio.run(runner.run(manager))
     print(final.status, final.stop_reason, flush=True)
