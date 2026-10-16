@@ -42,8 +42,13 @@ class StateManager:
         data = current.model_dump()
         data.update(changes, revision=current.revision + 1, events=(*current.events, event))
         candidate = State.model_validate(data)
-        self._state = candidate
+        self._publish(current, candidate)
         return candidate
+
+    def _publish(self, previous: State, candidate: State) -> None:
+        """Make a validated candidate current. Subclasses may persist first;
+        if persistence raises, the in-memory snapshot must stay unchanged."""
+        self._state = candidate
 
     def start(self, expected_revision: int) -> State:
         with self._lock:

@@ -11,7 +11,9 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 Identifier = Annotated[str, Field(min_length=1, max_length=80, pattern=r"^[A-Za-z0-9][A-Za-z0-9_.:-]*$")]
 Step = Literal["history_analysis", "clinical_analysis"]
 FindingCode = Literal["HISTORY_PRESENT", "HISTORY_MISSING", "OBSERVATIONS_PRESENT", "OBSERVATIONS_MISSING", "SYNTHETIC_ONLY"]
-StopCode = Literal["REVIEW_REQUIRED", "MISSING_DATA", "UNKNOWN_ROUTE", "AGENT_ERROR", "INVALID_RESULT", "TIMEOUT", "CANCELLED", "STEP_LIMIT", "INVALID_PLAN", "INTERNAL_ERROR"]
+StopCode = Literal["REVIEW_REQUIRED", "MISSING_DATA", "UNKNOWN_ROUTE", "AGENT_ERROR", "INVALID_RESULT", "TIMEOUT", "CANCELLED", "STEP_LIMIT", "INVALID_PLAN", "INTERNAL_ERROR",
+                   # P4, additive: execution found unfinished after a process restart.
+                   "INTERRUPTED"]
 
 
 def new_id() -> str:

@@ -1,0 +1,41 @@
+"""StateManager that persists every transition BEFORE publishing it in memory."""
+from threading import RLock
+
+from app.core.state import State
+from app.core.state_manager import StateManager
+from app.models.contracts import ClinicalCase
+from app.persistence.repository import StateRepository
+
+
+class PersistentStateManager(StateManager):
+    """Same transition rules as StateManager; each transition is a CAS write.
+
+    If the repository rejects or fails a write, the exception propagates and the
+    in-memory snapshot keeps the last persisted revision. A RevisionConflict
+    (another writer advanced the run) is never overwritten.
+    """
+
+    def __init__(self, case: ClinicalCase, repository: StateRepository):
+        if not isinstance(repository, StateRepository):
+            raise TypeError("repository must implement StateRepository")
+        super().__init__(case)
+        self._repository = repository
+        self._state = repository.create(self._state)
+
+    @classmethod
+    def resume(cls, repository: StateRepository, run_id: str) -> "PersistentStateManager":
+        """Open a stored run. Resuming never re-executes anything by itself."""
+        if not isinstance(repository, StateRepository):
+            raise TypeError("repository must implement StateRepository")
+        manager = cls.__new__(cls)
+        manager._lock = RLock()
+        manager._repository = repository
+        manager._state = repository.load(run_id)
+        return manager
+
+    @property
+    def run_id(self) -> str:
+        return self.snapshot().run_id
+
+    def _publish(self, previous: State, candidate: State) -> None:
+        self._state = self._repository.save(candidate, previous.revision)

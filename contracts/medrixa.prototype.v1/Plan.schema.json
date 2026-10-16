@@ -45,7 +45,8 @@
             "CANCELLED",
             "STEP_LIMIT",
             "INVALID_PLAN",
-            "INTERNAL_ERROR"
+            "INTERNAL_ERROR",
+            "INTERRUPTED"
           ],
           "type": "string"
         },
