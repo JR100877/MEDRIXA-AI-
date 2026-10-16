@@ -1,0 +1,7 @@
+-r requirements.txt
+# Tests of the HTTP adapter (httpx.AsyncClient + ASGITransport, Starlette TestClient)
+httpx==0.28.1
+# Optional local server: python -m app.web serve (binds 127.0.0.1 only)
+uvicorn==0.53.0
+# Static analysis used in P4b
+ruff==0.16.8

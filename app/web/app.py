@@ -1,0 +1,212 @@
+"""FastAPI application factory (local adapter, medrixa.http.v1).
+
+Security defaults: authentication on every route except /v1/health, host
+allow-list, bounded and strictly parsed bodies, uniform error envelope with a
+request id, no-store/nosniff/CSP headers, OpenAPI UI only in ``development``.
+"""
+import json
+import re
+import uuid
+from typing import Annotated
+
+from fastapi import FastAPI, Path, Request
+from fastapi.encoders import jsonable_encoder
+from fastapi.exceptions import RequestValidationError
+from fastapi.openapi.utils import get_openapi
+from fastapi.responses import JSONResponse
+from starlette.concurrency import run_in_threadpool
+from starlette.exceptions import HTTPException as StarletteHTTPException
+
+from app.api.contracts import InputRejected, parse_strict
+from app.persistence.memory import InMemoryStateRepository
+from app.persistence.repository import StateRepository
+from app.web import API_VERSION
+from app.web.audit import AuditSink, LoggingAuditSink
+from app.web.auth import AuthenticationFailed, Authenticator, HmacTokenAuthenticator, Principal
+from app.web.contracts import (CreateRunRequest, ErrorResponse, HealthView, RecoveryView, RunEventsView,
+                               RunView)
+from app.web.errors import ApiError, error_payload
+from app.web.service import IDEMPOTENCY_KEY, RunService
+from app.web.settings import Settings
+
+_REQUEST_ID = re.compile(r"^[A-Za-z0-9-]{8,64}$")
+_SECURITY_HEADERS = {
+    "Cache-Control": "no-store",
+    "X-Content-Type-Options": "nosniff",
+    "X-Frame-Options": "DENY",
+    "Referrer-Policy": "no-referrer",
+}
+_API_CSP = "default-src 'none'; frame-ancestors 'none'"
+_DOC_PATHS = {"/docs", "/docs/oauth2-redirect", "/openapi.json"}
+_STATUS_CODES = {404: "NOT_FOUND", 405: "METHOD_NOT_ALLOWED", 413: "PAYLOAD_TOO_LARGE",
+                 415: "UNSUPPORTED_MEDIA_TYPE", 401: "UNAUTHENTICATED", 403: "FORBIDDEN"}
+
+
+def _errors(*statuses: int) -> dict:
+    return {status: {"model": ErrorResponse} for status in statuses}
+
+
+def _json(model, status: int = 200, headers: dict | None = None) -> JSONResponse:
+    return JSONResponse(model.model_dump(mode="json"), status_code=status, headers=headers)
+
+
+def create_app(settings: Settings, repository: StateRepository | None = None,
+               audit: AuditSink | None = None, authenticator: Authenticator | None = None,
+               runner_factory=None) -> FastAPI:
+    settings = Settings.model_validate(settings)
+    if repository is None:
+        if settings.store_dir is not None:
+            from app.persistence.local_file import ProvisionalLocalFileRepository
+            repository = ProvisionalLocalFileRepository(settings.store_dir)
+        else:
+            repository = InMemoryStateRepository()  # explicit: nothing survives a restart
+    authenticator = authenticator or HmacTokenAuthenticator(
+        settings.auth_secret.get_secret_value(), settings.token_max_ttl_seconds, settings.clock_skew_seconds)
+    service_args = {"runner_factory": runner_factory} if runner_factory else {}
+    service = RunService(repository, audit or LoggingAuditSink(), **service_args)
+    allowed_hosts = frozenset(settings.allowed_hosts)
+
+    app = FastAPI(title="MEDRIXA AI — local API (provisional)", version=API_VERSION,
+                  description="Local synthetic-data simulator. Not a medical device; no clinical validation. "
+                              "All results require human review.",
+                  docs_url="/docs" if settings.expose_docs else None, redoc_url=None,
+                  openapi_url="/openapi.json" if settings.expose_docs else None)
+    app.state.service = service
+    app.state.settings = settings
+
+    def request_id_of(request: Request) -> str:
+        return getattr(request.state, "request_id", None) or uuid.uuid4().hex
+
+    def error_response(request: Request, code: str) -> JSONResponse:
+        status, body = error_payload(code, request_id_of(request))
+        headers = {"WWW-Authenticate": 'Bearer realm="medrixa"'} if status == 401 else None
+        return JSONResponse(body, status_code=status, headers=headers)
+
+    @app.middleware("http")
+    async def security_envelope(request: Request, call_next):
+        supplied = request.headers.get("x-request-id", "")
+        request.state.request_id = supplied if _REQUEST_ID.match(supplied) else uuid.uuid4().hex
+        host = (request.headers.get("host") or "").rsplit(":", 1)[0].strip("[]")
+        if host not in allowed_hosts:
+            response = error_response(request, "INVALID_INPUT")
+        else:
+            try:
+                response = await call_next(request)
+            except Exception:  # last resort: never leak a stack trace or message
+                response = error_response(request, "INTERNAL_ERROR")
+        for name, value in _SECURITY_HEADERS.items():
+            response.headers.setdefault(name, value)
+        if request.url.path not in _DOC_PATHS:
+            response.headers["Content-Security-Policy"] = _API_CSP
+        response.headers["X-Request-ID"] = request.state.request_id
+        return response
+
+    @app.exception_handler(ApiError)
+    async def api_error(request: Request, exc: ApiError):
+        return error_response(request, exc.code)
+
+    @app.exception_handler(RequestValidationError)
+    async def validation_error(request: Request, exc: RequestValidationError):
+        return error_response(request, "INVALID_INPUT")  # FastAPI's default would echo the input
+
+    @app.exception_handler(StarletteHTTPException)
+    async def http_error(request: Request, exc: StarletteHTTPException):
+        return error_response(request, _STATUS_CODES.get(exc.status_code, "INVALID_INPUT"))
+
+    def authenticate(request: Request) -> Principal:
+        try:
+            return authenticator.authenticate(request.headers.get("authorization"))
+        except AuthenticationFailed:
+            service.audit_auth_failure(request.state.request_id)
+            raise ApiError("UNAUTHENTICATED") from None
+
+    async def read_body(request: Request) -> bytes:
+        content_type = request.headers.get("content-type", "")
+        if content_type.split(";")[0].strip().lower() != "application/json":
+            raise ApiError("UNSUPPORTED_MEDIA_TYPE")
+        declared = request.headers.get("content-length")
+        if declared is not None and (not declared.isdigit() or int(declared) > settings.max_body_bytes):
+            raise ApiError("PAYLOAD_TOO_LARGE")
+        body = bytearray()
+        async for chunk in request.stream():
+            body += chunk
+            if len(body) > settings.max_body_bytes:
+                raise ApiError("PAYLOAD_TOO_LARGE")
+        return bytes(body)
+
+    bearer = {"security": [{"bearerAuth": []}]}
+
+    @app.get("/v1/health", response_model=HealthView, tags=["system"])
+    async def health() -> JSONResponse:
+        return _json(HealthView())
+
+    @app.post("/v1/runs", status_code=201, response_model=RunView, tags=["runs"],
+              summary="Create and execute a synthetic run (idempotent)",
+              responses=_errors(400, 401, 403, 409, 413, 415, 422, 500, 503),
+              openapi_extra={**bearer, "parameters": [{
+                  "name": "Idempotency-Key", "in": "header", "required": True,
+                  "description": "Client-generated key, unique per intended run (e.g. a UUID). "
+                                 "Retries with the same key and body replay the original result.",
+                  "schema": {"type": "string", "pattern": IDEMPOTENCY_KEY.pattern}}],
+                  "requestBody": {"required": True, "content": {"application/json": {
+                      "schema": {"$ref": "#/components/schemas/CreateRunRequest"}}}}})
+    async def create_run(request: Request) -> JSONResponse:
+        principal = authenticate(request)
+        idempotency_key = request.headers.get("idempotency-key", "")
+        if not IDEMPOTENCY_KEY.match(idempotency_key):
+            raise ApiError("IDEMPOTENCY_KEY_REQUIRED")
+        payload = await read_body(request)
+        try:
+            body = parse_strict(payload, CreateRunRequest, settings.max_body_bytes)
+        except InputRejected:
+            raise ApiError("INVALID_INPUT") from None
+        view, replayed = await service.create_run(principal, body.case, idempotency_key, request.state.request_id)
+        return _json(view, 201, {"Location": f"/v1/runs/{view.run_id}",
+                                 "Idempotent-Replayed": "true" if replayed else "false"})
+
+    run_id_param = Annotated[str, Path(description="Run identifier (opaque).")]
+
+    @app.get("/v1/runs/{run_id}", response_model=RunView, tags=["runs"],
+             responses=_errors(401, 403, 404, 500, 503), openapi_extra=bearer)
+    async def get_run(request: Request, run_id: run_id_param) -> JSONResponse:
+        principal = authenticate(request)
+        return _json(await run_in_threadpool(service.get_run, principal, run_id, request.state.request_id))
+
+    @app.get("/v1/runs/{run_id}/events", response_model=RunEventsView, tags=["runs"],
+             responses=_errors(401, 403, 404, 500, 503), openapi_extra=bearer)
+    async def get_events(request: Request, run_id: run_id_param) -> JSONResponse:
+        principal = authenticate(request)
+        return _json(await run_in_threadpool(service.get_events, principal, run_id, request.state.request_id))
+
+    @app.post("/v1/admin/recovery", response_model=RecoveryView, tags=["operations"],
+              summary="Move interrupted runs to human review (never re-executes agents)",
+              responses=_errors(401, 403, 409, 500, 503), openapi_extra=bearer)
+    async def recover(request: Request) -> JSONResponse:
+        principal = authenticate(request)
+        return _json(await run_in_threadpool(service.recover, principal, request.state.request_id))
+
+    def openapi_schema() -> dict:
+        if app.openapi_schema:
+            return app.openapi_schema
+        schema = get_openapi(title=app.title, version=app.version, description=app.description, routes=app.routes)
+        components = schema.setdefault("components", {})
+        request_schema = CreateRunRequest.model_json_schema(ref_template="#/components/schemas/{model}")
+        components.setdefault("schemas", {}).update(request_schema.pop("$defs", {}))
+        components["schemas"]["CreateRunRequest"] = request_schema
+        # FastAPI documents its default 422 validation body, which this API never
+        # emits (validation errors use the uniform 400 envelope): remove it.
+        for operations in schema.get("paths", {}).values():
+            for operation in operations.values():
+                default_422 = operation.get("responses", {}).get("422", {})
+                if "HTTPValidationError" in json.dumps(default_422):
+                    del operation["responses"]["422"]
+        for name in ("HTTPValidationError", "ValidationError"):
+            components["schemas"].pop(name, None)
+        components["securitySchemes"] = {"bearerAuth": {
+            "type": "http", "scheme": "bearer",
+            "description": "Provisional local HMAC token (mdx1). Not an identity provider."}}
+        app.openapi_schema = jsonable_encoder(schema)
+        return app.openapi_schema
+
+    app.openapi = openapi_schema
+    return app

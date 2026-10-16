@@ -15,10 +15,14 @@ class PersistentStateManager(StateManager):
     (another writer advanced the run) is never overwritten.
     """
 
-    def __init__(self, case: ClinicalCase, repository: StateRepository):
+    def __init__(self, case: ClinicalCase, repository: StateRepository, run_id: str | None = None):
+        """``run_id`` (optional, P4b) lets a caller derive a deterministic run id,
+        e.g. from an idempotency key; ``create`` still rejects duplicates."""
         if not isinstance(repository, StateRepository):
             raise TypeError("repository must implement StateRepository")
         super().__init__(case)
+        if run_id is not None:
+            self._state = State(case=self._state.case, run_id=run_id)
         self._repository = repository
         self._state = repository.create(self._state)
 

@@ -36,7 +36,7 @@ class RepositoryContract:
 
     def stored(self, repo, chain, upto):
         repo.create(chain[0])
-        for previous, current in zip(chain[:upto], chain[1:upto + 1]):
+        for previous, current in zip(chain[:upto], chain[1:upto + 1], strict=True):
             repo.save(current, previous.revision)
         return chain[upto]
 

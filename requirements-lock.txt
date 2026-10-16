@@ -1,6 +1,24 @@
-# Dependencias presentes y verificadas en esta sesión; no incluye instaladores.
+# Versions actually imported in the P4b verification session (Python 3.13.16, Linux).
+# Runtime closure of requirements.txt:
 pydantic==2.13.5
 pydantic_core==2.46.5
 annotated-types==0.8.0
 typing-extensions==4.16.0
 typing-inspection==0.4.4
+fastapi==0.143.2
+starlette==1.6.0
+anyio==4.15.1
+idna==3.20
+annotated-doc==0.0.5
+opentelemetry-api==1.44.0
+# Development closure of requirements-dev.txt:
+httpx==0.28.1
+httpcore==1.0.9
+h11==0.16.0
+certifi==2026.7.22
+uvicorn==0.53.0
+click==8.5.0
+ruff==0.16.8
+# Note: this environment also had httpx2==2.13.0 preinstalled; Starlette 1.6 TestClient
+# prefers httpx2 and falls back to httpx (with a deprecation warning). The 47 web tests
+# passed on both paths (httpx2 present; httpx2 hidden -> httpx 0.28.1).
