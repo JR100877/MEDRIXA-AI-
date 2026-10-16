@@ -15,6 +15,12 @@ Fuente rectora: autorización de dirección autónoma de ingeniería de Robinson
 - R09: independencia de NEXARIS; integración futura solo por contratos y permisos explícitos.
 - R10: no datos reales, uso clínico, producción, costos ni secretos. La marca sintética es un control de desarrollo, no un detector de información personal.
 
+## Requisitos P4 (autorización de Robinson, 15/10/2026, 21:18)
+
+- R11: puerto `StateRepository` con persistencia controlada por revisión; pruebas de concurrencia, atomicidad, corrupción, duplicación y aislamiento entre casos. Adaptador local identificado como provisional; PostgreSQL sigue como destino, sin declararse implementado.
+- R12: recuperación segura de ejecuciones interrumpidas, sin reintento automático de agentes y con revisión humana.
+- R13: conservar contratos y pruebas existentes; rama de desarrollo separada; sin fusión a la rama principal sin nueva autorización.
+
 ## Exclusiones del incremento
 
 Autenticación productiva, cifrado persistente, aislamiento de código no confiable, validación clínica, regulación, FHIR conforme, modelos LLM/ML y bases de conocimiento médicas. No se declararán implementados.

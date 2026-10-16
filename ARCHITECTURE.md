@@ -49,3 +49,20 @@ MEDRIXA sigue independiente; ningún módulo importa NEXARIS ni necesita otro pr
 | Interface | CLI y ocho esquemas JSON | HTTP FastAPI y frontend |
 
 Los esquemas no representan endpoints activos. Esta línea no incorpora IoT. El repositorio y sus documentos se conservan; el estado de simulaciones sigue en memoria.
+
+## Persistencia P4
+
+```
+Orchestrator ──► PersistentStateManager ──save(CAS)──► StateRepository (puerto)
+                   (persistir, luego publicar)              ├─ InMemoryStateRepository       [provisional, pruebas]
+                                                            ├─ ProvisionalLocalFileRepository [provisional, un equipo]
+recover_interrupted_runs ──scan/load/save──────────────────►└─ PostgreSQL                      [destino previsto, NO implementado]
+```
+
+El Orchestrator no cambió: usa el gestor persistente igual que el gestor en memoria. Un `RevisionConflict` hereda de `StateConflict` y se relanza sin sobrescribir. Las ejecuciones sobreviven al reinicio del proceso con el adaptador local. Lo interrumpido termina en revisión humana (`INTERRUPTED`) sin reejecutar agentes. Detalle y diseño PostgreSQL en `docs/PERSISTENCE.md`.
+
+| Área | Tras P4 | Pendiente |
+|---|---|---|
+| CORE | + puerto de repositorio, CAS, recuperación | Adaptador PostgreSQL; arrendamiento de ejecuciones |
+| Interface | CLI `--store`/`--recover`; 10 esquemas | HTTP FastAPI (P4b) y frontend |
+| Security | + historial solo extensible, checksum de corrupción, permisos de archivo | Firma, cifrado en reposo, AuthN/AuthZ |

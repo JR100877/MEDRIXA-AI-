@@ -23,6 +23,11 @@ Cada esquema incluye `schema_version: medrixa.prototype.v1`. Son contratos nuevo
 
 `RunSummary`: estado, motivo de detención y contadores de mensajes/resultados/eventos. No incluye identificadores ni observaciones. El estado detallado queda en memoria. Todos los resultados requieren revisión humana; el prototipo no dispone de función de aprobación clínica.
 
+## Persistencia local (P4)
+
+- `python -m app --store DIR [--case FILE]`: ejecuta y persiste en el adaptador local **provisional**. Si el directorio no puede abrirse, imprime `{"error":"STORE_UNAVAILABLE"}` y retorna 2. Si el almacén falla durante la ejecución, imprime lo mismo y retorna 1; el registro conserva la última revisión persistida. Esta segunda ruta está cubierta en pruebas del gestor, no en una prueba de CLI.
+- `python -m app --store DIR --recover`: imprime `RecoverySummary` (solo contadores, sin identificadores) y retorna 0, o 1 si hay registros corruptos. `--recover` sin `--store`, o junto con `--case`, retorna 2 con `INVALID_INPUT`.
+
 ## Adaptador HTTP futuro (diseño, no implementación)
 
-P4 definirá el adaptador FastAPI sobre el servicio y el repositorio. Antes de exponerlo: autenticación, autorización por caso, límites de petición, política de errores y reintentos, idempotencia, persistencia, exclusión de cuerpos sensibles de logs y pruebas de acceso. No se publica una URL ni se generan credenciales ficticias. La interfaz futura será independiente de NEXARIS.
+P4b definirá el adaptador FastAPI sobre el servicio y el repositorio. Antes de exponerlo: autenticación, autorización por caso, límites de petición, política de errores y reintentos, idempotencia, persistencia, exclusión de cuerpos sensibles de logs y pruebas de acceso. No se publica una URL ni se generan credenciales ficticias. La interfaz futura será independiente de NEXARIS.

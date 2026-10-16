@@ -44,6 +44,15 @@ El árbol entregado está en `medrixa_provisional/`; el repositorio clonado cont
 
 ## Contratos y límites
 
-Ocho JSON Schema se conservan en `contracts/medrixa.prototype.v1/`; regenerar con `python -m scripts.export_schemas`. `docs/API_CONTRACT.md` delimita la frontera local y la futura API. `docs/REQUIREMENTS_TRACEABILITY.md` relaciona requisitos con pruebas. `docs/RISKS.md` registra límites técnicos y clínicos.
+Diez JSON Schema se conservan en `contracts/medrixa.prototype.v1/`; regenerar con `python -m scripts.export_schemas`. `docs/API_CONTRACT.md` delimita la frontera local y la futura API. `docs/REQUIREMENTS_TRACEABILITY.md` relaciona requisitos con pruebas. `docs/RISKS.md` registra límites técnicos y clínicos.
 
-No hay almacenamiento de ejecuciones después de cerrar el proceso, servidor web, motor clínico validado, FHIR implementado ni integración LLM/ML. La próxima tarea exacta está en `CONTINUITY.json` y `docs/NEXT_PACKAGE.md`.
+## Persistencia (P4, rama `dev/p4-persistence`)
+
+```bash
+python -m app --store ./runs                      # ejecuta y persiste (adaptador local PROVISIONAL)
+python -m app --store ./runs --recover            # tras un reinicio: interrumpidas → revisión humana
+```
+
+El almacenamiento duradero existe solo mediante el adaptador local provisional de un equipo; PostgreSQL es el destino previsto y **no está implementado**. La recuperación nunca reejecuta agentes. P4 se probó con Python 3.13.16 (P1–P3 con 3.12.14). Ver `docs/PERSISTENCE.md`.
+
+No hay servidor web, motor clínico validado, FHIR implementado ni integración LLM/ML. La próxima tarea exacta está en `CONTINUITY.json` y `docs/NEXT_PACKAGE.md`.

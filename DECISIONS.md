@@ -32,3 +32,15 @@ La igualdad de Literal[True] admitía enteros en P1/P2. P3 exige booleano exacto
 ## ADR-007 — Trazabilidad estructural y revisión final
 
 State revalida la secuencia de eventos contra mensajes y resultados. No se llama auditoría inviolable: falta firma y persistencia externa. La CLI solo imprime contadores, no observaciones ni IDs. La comparación del tiempo monotónico rechaza respuestas tardías; no resuelve bloqueo infinito ni procesos hostiles.
+
+## ADR-008 — Puerto StateRepository y adaptadores provisionales (P4)
+
+La persistencia se define como puerto con contrato probado (`tests/persistence/test_repository_contract.py`), independiente del motor. Se implementan dos adaptadores **provisionales**: en memoria (pruebas) y archivo local (desarrollo y reinicio). PostgreSQL sigue siendo el destino histórico previsto; no se implementa ni se declara implementado. No se añadieron dependencias. Cada `save` es un compare-and-swap de exactamente una transición que extiende el historial; instantánea y eventos son un único registro atómico. Detalle: `docs/PERSISTENCE.md`.
+
+## ADR-009 — Recuperación fail-closed y código `INTERRUPTED`
+
+Toda ejecución `running` hallada tras un reinicio pasa a revisión humana con el nuevo `StopCode` `INTERRUPTED`; no se reanuda ni se reintenta ningún agente, porque su efecto y resultado son desconocidos y no se supone idempotencia. Las ejecuciones `created` se informan sin tocarlas. El código `INTERRUPTED` es un cambio **aditivo** del contrato `medrixa.prototype.v1`: todo documento válido en P3 sigue siendo válido (`tests/persistence/test_contract_compat.py`); se regeneraron los esquemas State, Plan y RunSummary. No hay arrendamiento/latido: la recuperación debe ejecutarse sin ejecutores activos.
+
+## ADR-010 — Persistir antes de publicar
+
+`StateManager._commit` delega en un gancho `_publish` (comportamiento P1–P3 idéntico). `PersistentStateManager` lo sobrescribe para escribir en el repositorio antes de actualizar memoria: un fallo de almacenamiento no deja estado en memoria por delante del almacenado. Las 52 pruebas previas pasan sin modificación.

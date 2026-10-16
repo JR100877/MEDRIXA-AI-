@@ -1,21 +1,24 @@
-# P4 — siguiente paquete exacto
+# P4b — siguiente paquete exacto
+
+P4 (puerto `StateRepository`, adaptadores provisionales y recuperación) está implementado en la rama `dev/p4-persistence`, pendiente de autorización para fusionarse. Ver `TEST_STATUS.md` y `docs/PERSISTENCE.md`.
 
 ## Objetivo
 
-Dar persistencia transaccional a ejecuciones sintéticas, conservando el State validado, la revisión optimista y el historial de eventos. Es el siguiente riesgo concreto: hoy una caída pierde el estado de la ejecución.
+Exponer el servicio persistente mediante un adaptador HTTP FastAPI local, sin despliegue, conservando los contratos `medrixa.prototype.v1` y la revisión humana terminal.
 
 ## Orden de ejecución
 
-1. Abrir `CONTINUITY.json` y `TEST_STATUS.md`; verificar el manifest y el commit del paquete. No repetir búsquedas históricas ni las 52 pruebas si no hay cambios que lo justifiquen.
-2. Definir `StateRepository` como puerto (crear, cargar, guardar con revisión esperada), con contrato de conflicto explícito. Mantener PostgreSQL como destino histórico; un adaptador local de pruebas debe etiquetarse como tal y no cambiar esa decisión.
-3. Implementar pruebas de contrato de repositorio: dos escritores con una revisión, snapshot/eventos atómicos, corrupción, duplicación de run y aislamiento entre casos.
-4. Diseñar recuperación segura de ejecución interrumpida: pendiente sin resultado pasa a revisión; no repetir agentes automáticamente ni suponer idempotencia.
-5. Solo después preparar el adaptador FastAPI sobre ese servicio. Si la dependencia no puede obtenerse, continuar puerto/repositorio/contratos con recursos locales, dejando HTTP pendiente sin fingir servidor operativo.
+1. Abrir `CONTINUITY.json` y `TEST_STATUS.md` y verificar el manifest. No repetir las 107 pruebas si el código no cambió.
+2. Confirmar si FastAPI y un cliente de pruebas pueden instalarse. Si no es posible, dejar HTTP pendiente sin fingir un servidor.
+3. Crear una capa de servicio (crear ejecución, consultar resumen y recuperar) sobre `StateRepository`. HTTP solo traduce: reutiliza `parse_case` y los errores uniformes, y no devuelve observaciones.
+4. Antes de exponer cualquier ruta, definir con el responsable: autenticación, autorización por caso, límites de petición, idempotencia de creación (clave de idempotencia), códigos HTTP para `RevisionConflict`/`DuplicateRun` y exclusión de cuerpos en los logs.
+5. Decidir si el adaptador PostgreSQL entra antes o después de HTTP. Debe pasar `tests/persistence/test_repository_contract.py` sin cambios. Un PostgreSQL local o en contenedor no implica costos; un servicio gestionado requiere aprobación.
+6. Opcional: arrendamiento/latido de ejecuciones, para que la recuperación pueda correr con ejecutores vivos.
 
 ## Criterio de aceptación
 
-Una ejecución sintética completa y otra interrumpida conservan estado y eventos al reiniciar el proceso; ningún resultado se acepta dos veces ni se cruza entre casos. Pruebas focalizadas de repositorio y de los puntos del CORE modificados. Sin conexión hospitalaria, publicación ni datos reales.
+Pruebas HTTP locales para entrada inválida, conflicto, duplicado y recuperación; sin servidor público, sin credenciales reales y sin datos reales.
 
 ## Condiciones de aprobación
 
-No se requiere aprobación para implementación local aislada. Sí para producción, datos reales, costos, acceso hospitalario o cambio incompatible de la arquitectura histórica. Si se recupera código original, comparar sin sobrescribir ni declarar compatibilidad antes de demostrarla.
+Fusionar `dev/p4-persistence` requiere autorización de Robinson. También requieren aprobación: producción, datos reales, costos, acceso hospitalario o un cambio incompatible de contratos o de la arquitectura histórica.
