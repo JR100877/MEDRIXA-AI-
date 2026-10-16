@@ -31,3 +31,5 @@ Actualización P6: **P6 está implementado** en `dev/p6-leases` (arrendamientos 
 Actualización P7 (16/10): **P7 está implementado** en `dev/p7-security`, con 305 pruebas y sin fusionar. Quedan **bloqueados** por decisión humana: el proveedor de identidad, el gestor de secretos, el cifrado en reposo, el modelo de multi-tenancy y los valores operativos definitivos. El siguiente es P8, observabilidad (propuesta; ver `docs/NEXT_PACKAGE.md`).
 
 Actualización P8 (16/10): **P8 está implementado** en `dev/p8-observability`, con 326 pruebas y sin fusionar. Siguiente propuesta: P9, sacar la ejecución del ciclo HTTP, justificado por la medición de ADR-030.
+
+Actualización P9 (16/10): **experimento P9** en `exp/p9-execution-offload`, que no es una fase implementada. Se evaluó y midió la opción C (hilo y bucle por ejecución) frente a P8, y se documentó la opción B (202 + trabajador) sin implementarla. Recomendación y decisiones pendientes en `docs/P9_EXPERIMENT.md`. La arquitectura definitiva de P9 espera la aprobación de Robinson.

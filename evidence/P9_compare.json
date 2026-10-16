@@ -1,0 +1,611 @@
+{
+  "experiment": "P9 option C vs inline (P8 baseline)",
+  "python": "3.13.16",
+  "platform": "Linux-6.18.44-fc-v139-x86_64-with-glibc2.39",
+  "cpus": 2,
+  "requests": 400,
+  "repeats": 3,
+  "note": "single process, in-process ASGI (no network/TLS), synthetic agents, ephemeral local PostgreSQL over a Unix socket; sizing evidence for THIS host only",
+  "results": [
+    {
+      "store": "memory",
+      "strategy": "inline",
+      "concurrency": 1,
+      "max_active_runs": 16,
+      "requests": 400,
+      "throughput_rps": 210.6,
+      "status_counts": {
+        "201": 400
+      },
+      "latency_ms": {
+        "p50": 4.1,
+        "p95": 6.76,
+        "p99": 9.65,
+        "max": 135.69
+      },
+      "loop_lag_ms": {
+        "p50": 0.7,
+        "p99": 3.9,
+        "max": 132.14
+      },
+      "health_probe_ms": {
+        "n": 80,
+        "p50": 1.57,
+        "p99": 4.69,
+        "max": 5.53
+      },
+      "cpu_ms_per_request": 4.65,
+      "peak_threads": 2,
+      "peak_rss_mb": 112.2,
+      "worker_peak_in_flight": null,
+      "throughput_rps_all_repeats": [
+        197.1,
+        211.6,
+        210.6
+      ]
+    },
+    {
+      "store": "memory",
+      "strategy": "thread",
+      "concurrency": 1,
+      "max_active_runs": 16,
+      "requests": 400,
+      "throughput_rps": 166.4,
+      "status_counts": {
+        "201": 400
+      },
+      "latency_ms": {
+        "p50": 5.68,
+        "p95": 8.84,
+        "p99": 10.77,
+        "max": 14.65
+      },
+      "loop_lag_ms": {
+        "p50": 0.66,
+        "p99": 4.32,
+        "max": 6.74
+      },
+      "health_probe_ms": {
+        "n": 106,
+        "p50": 1.46,
+        "p99": 4.69,
+        "max": 5.99
+      },
+      "cpu_ms_per_request": 5.87,
+      "peak_threads": 3,
+      "peak_rss_mb": 120.4,
+      "worker_peak_in_flight": 1,
+      "throughput_rps_all_repeats": [
+        142.4,
+        173.1,
+        166.4
+      ]
+    },
+    {
+      "store": "memory",
+      "strategy": "inline",
+      "concurrency": 8,
+      "max_active_runs": 16,
+      "requests": 400,
+      "throughput_rps": 204.7,
+      "status_counts": {
+        "201": 400
+      },
+      "latency_ms": {
+        "p50": 38.18,
+        "p95": 51.89,
+        "p99": 55.8,
+        "max": 70.3
+      },
+      "loop_lag_ms": {
+        "p50": 4.68,
+        "p99": 25.33,
+        "max": 29.43
+      },
+      "health_probe_ms": {
+        "n": 52,
+        "p50": 8.45,
+        "p99": 17.15,
+        "max": 17.53
+      },
+      "cpu_ms_per_request": 4.87,
+      "peak_threads": 9,
+      "peak_rss_mb": 146.4,
+      "worker_peak_in_flight": null,
+      "throughput_rps_all_repeats": [
+        213.8,
+        204.7,
+        194.1
+      ]
+    },
+    {
+      "store": "memory",
+      "strategy": "thread",
+      "concurrency": 8,
+      "max_active_runs": 16,
+      "requests": 400,
+      "throughput_rps": 162.3,
+      "status_counts": {
+        "201": 400
+      },
+      "latency_ms": {
+        "p50": 48.04,
+        "p95": 68.88,
+        "p99": 80.66,
+        "max": 87.24
+      },
+      "loop_lag_ms": {
+        "p50": 2.35,
+        "p99": 18.97,
+        "max": 22.81
+      },
+      "health_probe_ms": {
+        "n": 68,
+        "p50": 6.62,
+        "p99": 26.62,
+        "max": 35.43
+      },
+      "cpu_ms_per_request": 6.32,
+      "peak_threads": 17,
+      "peak_rss_mb": 155.2,
+      "worker_peak_in_flight": 8,
+      "throughput_rps_all_repeats": [
+        153.2,
+        162.3,
+        165.1
+      ]
+    },
+    {
+      "store": "memory",
+      "strategy": "inline",
+      "concurrency": 32,
+      "max_active_runs": 16,
+      "requests": 400,
+      "throughput_rps": 241.6,
+      "status_counts": {
+        "201": 292,
+        "503": 108
+      },
+      "latency_ms": {
+        "p50": 95.94,
+        "p95": 482.37,
+        "p99": 488.58,
+        "max": 497.21
+      },
+      "loop_lag_ms": {
+        "p50": 10.3,
+        "p99": 46.79,
+        "max": 368.35
+      },
+      "health_probe_ms": {
+        "n": 20,
+        "p50": 26.6,
+        "p99": 74.68,
+        "max": 74.68
+      },
+      "cpu_ms_per_request": 4.1,
+      "peak_threads": 33,
+      "peak_rss_mb": 209.6,
+      "worker_peak_in_flight": null,
+      "throughput_rps_all_repeats": [
+        263.5,
+        231.3,
+        241.6
+      ]
+    },
+    {
+      "store": "memory",
+      "strategy": "thread",
+      "concurrency": 32,
+      "max_active_runs": 16,
+      "requests": 400,
+      "throughput_rps": 175.0,
+      "status_counts": {
+        "201": 371,
+        "503": 29
+      },
+      "latency_ms": {
+        "p50": 178.0,
+        "p95": 227.82,
+        "p99": 266.85,
+        "max": 299.99
+      },
+      "loop_lag_ms": {
+        "p50": 10.36,
+        "p99": 44.66,
+        "max": 55.29
+      },
+      "health_probe_ms": {
+        "n": 28,
+        "p50": 38.59,
+        "p99": 88.21,
+        "max": 88.21
+      },
+      "cpu_ms_per_request": 5.8,
+      "peak_threads": 49,
+      "peak_rss_mb": 204.6,
+      "worker_peak_in_flight": 14,
+      "throughput_rps_all_repeats": [
+        162.5,
+        175.0,
+        197.6
+      ]
+    },
+    {
+      "store": "memory",
+      "strategy": "inline",
+      "concurrency": 32,
+      "max_active_runs": 4,
+      "requests": 400,
+      "throughput_rps": 362.6,
+      "status_counts": {
+        "201": 147,
+        "503": 253
+      },
+      "latency_ms": {
+        "p50": 83.57,
+        "p95": 116.77,
+        "p99": 129.18,
+        "max": 139.13
+      },
+      "loop_lag_ms": {
+        "p50": 10.02,
+        "p99": 20.32,
+        "max": 21.05
+      },
+      "health_probe_ms": {
+        "n": 19,
+        "p50": 27.7,
+        "p99": 46.39,
+        "max": 46.39
+      },
+      "cpu_ms_per_request": 2.77,
+      "peak_threads": 33,
+      "peak_rss_mb": 233.2,
+      "worker_peak_in_flight": null,
+      "throughput_rps_all_repeats": [
+        355.8,
+        470.5,
+        362.6
+      ]
+    },
+    {
+      "store": "memory",
+      "strategy": "thread",
+      "concurrency": 32,
+      "max_active_runs": 4,
+      "requests": 400,
+      "throughput_rps": 284.8,
+      "status_counts": {
+        "201": 101,
+        "503": 299
+      },
+      "latency_ms": {
+        "p50": 80.46,
+        "p95": 422.96,
+        "p99": 455.18,
+        "max": 476.77
+      },
+      "loop_lag_ms": {
+        "p50": 6.96,
+        "p99": 30.3,
+        "max": 350.33
+      },
+      "health_probe_ms": {
+        "n": 20,
+        "p50": 26.68,
+        "p99": 37.72,
+        "max": 37.72
+      },
+      "cpu_ms_per_request": 3.55,
+      "peak_threads": 37,
+      "peak_rss_mb": 235.6,
+      "worker_peak_in_flight": 4,
+      "throughput_rps_all_repeats": [
+        274.7,
+        354.1,
+        284.8
+      ]
+    },
+    {
+      "store": "postgresql-pool4",
+      "strategy": "inline",
+      "concurrency": 1,
+      "max_active_runs": 16,
+      "requests": 400,
+      "throughput_rps": 46.1,
+      "status_counts": {
+        "201": 400
+      },
+      "latency_ms": {
+        "p50": 20.85,
+        "p95": 28.57,
+        "p99": 31.94,
+        "max": 38.35
+      },
+      "loop_lag_ms": {
+        "p50": 15.13,
+        "p99": 24.19,
+        "max": 31.88
+      },
+      "health_probe_ms": {
+        "n": 308,
+        "p50": 2.44,
+        "p99": 21.2,
+        "max": 27.08
+      },
+      "cpu_ms_per_request": 13.31,
+      "peak_threads": 6,
+      "peak_rss_mb": 238.1,
+      "worker_peak_in_flight": null,
+      "throughput_rps_all_repeats": [
+        47.8,
+        46.1,
+        46.0
+      ]
+    },
+    {
+      "store": "postgresql-pool4",
+      "strategy": "thread",
+      "concurrency": 1,
+      "max_active_runs": 16,
+      "requests": 400,
+      "throughput_rps": 39.8,
+      "status_counts": {
+        "201": 400
+      },
+      "latency_ms": {
+        "p50": 24.34,
+        "p95": 35.03,
+        "p99": 38.56,
+        "max": 43.3
+      },
+      "loop_lag_ms": {
+        "p50": 0.45,
+        "p99": 2.02,
+        "max": 4.53
+      },
+      "health_probe_ms": {
+        "n": 447,
+        "p50": 1.5,
+        "p99": 4.38,
+        "max": 7.48
+      },
+      "cpu_ms_per_request": 16.63,
+      "peak_threads": 7,
+      "peak_rss_mb": 241.9,
+      "worker_peak_in_flight": 1,
+      "throughput_rps_all_repeats": [
+        37.2,
+        41.8,
+        39.8
+      ]
+    },
+    {
+      "store": "postgresql-pool4",
+      "strategy": "inline",
+      "concurrency": 8,
+      "max_active_runs": 16,
+      "requests": 400,
+      "throughput_rps": 49.3,
+      "status_counts": {
+        "201": 400
+      },
+      "latency_ms": {
+        "p50": 155.99,
+        "p95": 209.48,
+        "p99": 277.73,
+        "max": 296.84
+      },
+      "loop_lag_ms": {
+        "p50": 19.55,
+        "p99": 115.37,
+        "max": 153.17
+      },
+      "health_probe_ms": {
+        "n": 100,
+        "p50": 11.93,
+        "p99": 30.26,
+        "max": 48.95
+      },
+      "cpu_ms_per_request": 11.72,
+      "peak_threads": 13,
+      "peak_rss_mb": 247.2,
+      "worker_peak_in_flight": null,
+      "throughput_rps_all_repeats": [
+        51.2,
+        49.3,
+        48.5
+      ]
+    },
+    {
+      "store": "postgresql-pool4",
+      "strategy": "thread",
+      "concurrency": 8,
+      "max_active_runs": 16,
+      "requests": 400,
+      "throughput_rps": 59.9,
+      "status_counts": {
+        "201": 400
+      },
+      "latency_ms": {
+        "p50": 129.33,
+        "p95": 182.32,
+        "p99": 210.37,
+        "max": 221.44
+      },
+      "loop_lag_ms": {
+        "p50": 2.79,
+        "p99": 20.85,
+        "max": 67.46
+      },
+      "health_probe_ms": {
+        "n": 232,
+        "p50": 2.74,
+        "p99": 19.54,
+        "max": 25.25
+      },
+      "cpu_ms_per_request": 15.77,
+      "peak_threads": 21,
+      "peak_rss_mb": 251.2,
+      "worker_peak_in_flight": 8,
+      "throughput_rps_all_repeats": [
+        58.7,
+        63.6,
+        59.9
+      ]
+    },
+    {
+      "store": "postgresql-pool4",
+      "strategy": "inline",
+      "concurrency": 32,
+      "max_active_runs": 16,
+      "requests": 400,
+      "throughput_rps": 62.9,
+      "status_counts": {
+        "201": 339,
+        "503": 61
+      },
+      "latency_ms": {
+        "p50": 517.04,
+        "p95": 944.55,
+        "p99": 947.71,
+        "max": 949.75
+      },
+      "loop_lag_ms": {
+        "p50": 24.63,
+        "p99": 262.37,
+        "max": 668.34
+      },
+      "health_probe_ms": {
+        "n": 22,
+        "p50": 126.93,
+        "p99": 289.14,
+        "max": 289.14
+      },
+      "cpu_ms_per_request": 9.94,
+      "peak_threads": 37,
+      "peak_rss_mb": 257.7,
+      "worker_peak_in_flight": null,
+      "throughput_rps_all_repeats": [
+        55.5,
+        62.9,
+        74.2
+      ]
+    },
+    {
+      "store": "postgresql-pool4",
+      "strategy": "thread",
+      "concurrency": 32,
+      "max_active_runs": 16,
+      "requests": 400,
+      "throughput_rps": 83.6,
+      "status_counts": {
+        "201": 308,
+        "503": 92
+      },
+      "latency_ms": {
+        "p50": 381.66,
+        "p95": 525.84,
+        "p99": 558.24,
+        "max": 589.92
+      },
+      "loop_lag_ms": {
+        "p50": 28.7,
+        "p99": 129.11,
+        "max": 193.59
+      },
+      "health_probe_ms": {
+        "n": 35,
+        "p50": 51.43,
+        "p99": 154.69,
+        "max": 154.69
+      },
+      "cpu_ms_per_request": 11.2,
+      "peak_threads": 48,
+      "peak_rss_mb": 258.7,
+      "worker_peak_in_flight": 11,
+      "throughput_rps_all_repeats": [
+        83.8,
+        83.6,
+        72.8
+      ]
+    },
+    {
+      "store": "postgresql-pool4",
+      "strategy": "inline",
+      "concurrency": 32,
+      "max_active_runs": 4,
+      "requests": 400,
+      "throughput_rps": 169.9,
+      "status_counts": {
+        "201": 56,
+        "503": 344
+      },
+      "latency_ms": {
+        "p50": 140.15,
+        "p95": 697.55,
+        "p99": 716.72,
+        "max": 727.89
+      },
+      "loop_lag_ms": {
+        "p50": 8.85,
+        "p99": 99.26,
+        "max": 626.32
+      },
+      "health_probe_ms": {
+        "n": 18,
+        "p50": 28.45,
+        "p99": 638.41,
+        "max": 638.41
+      },
+      "cpu_ms_per_request": 4.45,
+      "peak_threads": 37,
+      "peak_rss_mb": 262.7,
+      "worker_peak_in_flight": null,
+      "throughput_rps_all_repeats": [
+        169.9,
+        83.7,
+        186.4
+      ]
+    },
+    {
+      "store": "postgresql-pool4",
+      "strategy": "thread",
+      "concurrency": 32,
+      "max_active_runs": 4,
+      "requests": 400,
+      "throughput_rps": 393.8,
+      "status_counts": {
+        "201": 12,
+        "503": 388
+      },
+      "latency_ms": {
+        "p50": 67.8,
+        "p95": 105.64,
+        "p99": 385.34,
+        "max": 541.42
+      },
+      "loop_lag_ms": {
+        "p50": 7.37,
+        "p99": 27.39,
+        "max": 27.64
+      },
+      "health_probe_ms": {
+        "n": 20,
+        "p50": 23.77,
+        "p99": 41.77,
+        "max": 41.77
+      },
+      "cpu_ms_per_request": 2.52,
+      "peak_threads": 41,
+      "peak_rss_mb": 263.5,
+      "worker_peak_in_flight": 4,
+      "throughput_rps_all_repeats": [
+        393.8,
+        418.2,
+        290.3
+      ]
+    }
+  ]
+}

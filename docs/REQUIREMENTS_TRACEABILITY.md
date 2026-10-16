@@ -31,5 +31,6 @@
 | R27 métricas | observability/metrics.py; web/app.py; policy `metrics:read` | RegistryTests; HttpMetricsTests (sin identificadores; solo operador); mutaciones P8 |
 | R28 preparación | `/v1/ready`; ganchos `ping()` y `ready()` | ReadinessTests (auditoría, almacén, directorio, JWKS, PostgreSQL eliminado) |
 | R29 correlación y carga | observability/context.py; scripts/load_test.py | OperationalLoggingTests (hilo de autenticación); evidence/P8_load.json |
+| R30 experimento P9 (EXPERIMENTAL, no adoptado) | app/experimental/execution.py; gancho `execution` en web/service.py y web/app.py; scripts/experiments/* | tests/experimental/test_thread_execution.py (11); evidence/P9_suite_under_option_c.json; P9_compare*.json; P9_run_profile.json; docs/P9_EXPERIMENT.md |
 
 Se distingue evidencia automatizada de inspección: independencia y ausencia de servicios externos se constatan en las fuentes, no mediante una certificación de seguridad.

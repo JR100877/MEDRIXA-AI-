@@ -1,0 +1,312 @@
+{
+  "experiment": "P9 option C vs inline (P8 baseline)",
+  "python": "3.13.16",
+  "platform": "Linux-6.18.44-fc-v139-x86_64-with-glibc2.39",
+  "cpus": 2,
+  "requests": 400,
+  "repeats": 3,
+  "pg_pool_sizes": "16",
+  "note": "single process, in-process ASGI (no network/TLS), synthetic agents, ephemeral local PostgreSQL over a Unix socket; sizing evidence for THIS host only",
+  "results": [
+    {
+      "store": "postgresql-pool16",
+      "strategy": "inline",
+      "concurrency": 1,
+      "max_active_runs": 16,
+      "requests": 400,
+      "throughput_rps": 46.6,
+      "status_counts": {
+        "201": 400
+      },
+      "latency_ms": {
+        "p50": 20.5,
+        "p95": 28.87,
+        "p99": 35.41,
+        "max": 67.01
+      },
+      "loop_lag_ms": {
+        "p50": 14.58,
+        "p99": 26.4,
+        "max": 56.37
+      },
+      "health_probe_ms": {
+        "n": 287,
+        "p50": 2.36,
+        "p99": 20.43,
+        "max": 24.01
+      },
+      "cpu_ms_per_request": 12.85,
+      "peak_threads": 6,
+      "peak_rss_mb": 76.8,
+      "worker_peak_in_flight": null,
+      "throughput_rps_all_repeats": [
+        47.0,
+        46.6,
+        45.7
+      ]
+    },
+    {
+      "store": "postgresql-pool16",
+      "strategy": "thread",
+      "concurrency": 1,
+      "max_active_runs": 16,
+      "requests": 400,
+      "throughput_rps": 40.3,
+      "status_counts": {
+        "201": 400
+      },
+      "latency_ms": {
+        "p50": 23.78,
+        "p95": 34.91,
+        "p99": 44.58,
+        "max": 78.9
+      },
+      "loop_lag_ms": {
+        "p50": 0.45,
+        "p99": 2.14,
+        "max": 50.15
+      },
+      "health_probe_ms": {
+        "n": 441,
+        "p50": 1.45,
+        "p99": 5.07,
+        "max": 8.12
+      },
+      "cpu_ms_per_request": 16.05,
+      "peak_threads": 7,
+      "peak_rss_mb": 75.5,
+      "worker_peak_in_flight": 1,
+      "throughput_rps_all_repeats": [
+        40.3,
+        40.0,
+        43.4
+      ]
+    },
+    {
+      "store": "postgresql-pool16",
+      "strategy": "inline",
+      "concurrency": 8,
+      "max_active_runs": 16,
+      "requests": 400,
+      "throughput_rps": 55.9,
+      "status_counts": {
+        "201": 400
+      },
+      "latency_ms": {
+        "p50": 140.96,
+        "p95": 166.52,
+        "p99": 188.34,
+        "max": 190.09
+      },
+      "loop_lag_ms": {
+        "p50": 9.21,
+        "p99": 136.46,
+        "max": 140.84
+      },
+      "health_probe_ms": {
+        "n": 83,
+        "p50": 13.93,
+        "p99": 58.05,
+        "max": 67.52
+      },
+      "cpu_ms_per_request": 10.79,
+      "peak_threads": 13,
+      "peak_rss_mb": 89.0,
+      "worker_peak_in_flight": null,
+      "throughput_rps_all_repeats": [
+        56.8,
+        55.9,
+        53.9
+      ]
+    },
+    {
+      "store": "postgresql-pool16",
+      "strategy": "thread",
+      "concurrency": 8,
+      "max_active_runs": 16,
+      "requests": 400,
+      "throughput_rps": 60.2,
+      "status_counts": {
+        "201": 400
+      },
+      "latency_ms": {
+        "p50": 126.36,
+        "p95": 204.78,
+        "p99": 225.75,
+        "max": 252.77
+      },
+      "loop_lag_ms": {
+        "p50": 2.84,
+        "p99": 22.77,
+        "max": 81.36
+      },
+      "health_probe_ms": {
+        "n": 209,
+        "p50": 4.8,
+        "p99": 34.07,
+        "max": 85.15
+      },
+      "cpu_ms_per_request": 15.72,
+      "peak_threads": 21,
+      "peak_rss_mb": 94.6,
+      "worker_peak_in_flight": 8,
+      "throughput_rps_all_repeats": [
+        55.3,
+        61.8,
+        60.2
+      ]
+    },
+    {
+      "store": "postgresql-pool16",
+      "strategy": "inline",
+      "concurrency": 32,
+      "max_active_runs": 16,
+      "requests": 400,
+      "throughput_rps": 67.3,
+      "status_counts": {
+        "201": 315,
+        "503": 85
+      },
+      "latency_ms": {
+        "p50": 455.84,
+        "p95": 637.64,
+        "p99": 653.58,
+        "max": 658.87
+      },
+      "loop_lag_ms": {
+        "p50": 38.38,
+        "p99": 274.58,
+        "max": 319.78
+      },
+      "health_probe_ms": {
+        "n": 24,
+        "p50": 114.31,
+        "p99": 360.16,
+        "max": 360.16
+      },
+      "cpu_ms_per_request": 9.18,
+      "peak_threads": 37,
+      "peak_rss_mb": 103.0,
+      "worker_peak_in_flight": null,
+      "throughput_rps_all_repeats": [
+        58.1,
+        67.3,
+        67.9
+      ]
+    },
+    {
+      "store": "postgresql-pool16",
+      "strategy": "thread",
+      "concurrency": 32,
+      "max_active_runs": 16,
+      "requests": 400,
+      "throughput_rps": 70.6,
+      "status_counts": {
+        "201": 354,
+        "503": 46
+      },
+      "latency_ms": {
+        "p50": 442.36,
+        "p95": 625.81,
+        "p99": 675.64,
+        "max": 719.47
+      },
+      "loop_lag_ms": {
+        "p50": 39.15,
+        "p99": 125.85,
+        "max": 173.66
+      },
+      "health_probe_ms": {
+        "n": 37,
+        "p50": 100.26,
+        "p99": 175.51,
+        "max": 175.51
+      },
+      "cpu_ms_per_request": 13.28,
+      "peak_threads": 51,
+      "peak_rss_mb": 108.4,
+      "worker_peak_in_flight": 14,
+      "throughput_rps_all_repeats": [
+        68.8,
+        73.5,
+        70.6
+      ]
+    },
+    {
+      "store": "postgresql-pool16",
+      "strategy": "inline",
+      "concurrency": 32,
+      "max_active_runs": 4,
+      "requests": 400,
+      "throughput_rps": 219.6,
+      "status_counts": {
+        "201": 60,
+        "503": 340
+      },
+      "latency_ms": {
+        "p50": 130.02,
+        "p95": 221.65,
+        "p99": 238.57,
+        "max": 242.7
+      },
+      "loop_lag_ms": {
+        "p50": 5.83,
+        "p99": 87.68,
+        "max": 115.53
+      },
+      "health_probe_ms": {
+        "n": 18,
+        "p50": 27.83,
+        "p99": 96.66,
+        "max": 96.66
+      },
+      "cpu_ms_per_request": 3.28,
+      "peak_threads": 37,
+      "peak_rss_mb": 108.2,
+      "worker_peak_in_flight": null,
+      "throughput_rps_all_repeats": [
+        219.6,
+        181.1,
+        222.7
+      ]
+    },
+    {
+      "store": "postgresql-pool16",
+      "strategy": "thread",
+      "concurrency": 32,
+      "max_active_runs": 4,
+      "requests": 400,
+      "throughput_rps": 394.0,
+      "status_counts": {
+        "201": 12,
+        "503": 388
+      },
+      "latency_ms": {
+        "p50": 68.63,
+        "p95": 102.04,
+        "p99": 447.07,
+        "max": 570.48
+      },
+      "loop_lag_ms": {
+        "p50": 7.84,
+        "p99": 29.44,
+        "max": 31.98
+      },
+      "health_probe_ms": {
+        "n": 21,
+        "p50": 23.82,
+        "p99": 50.49,
+        "max": 50.49
+      },
+      "cpu_ms_per_request": 2.5,
+      "peak_threads": 41,
+      "peak_rss_mb": 109.3,
+      "worker_peak_in_flight": 4,
+      "throughput_rps_all_repeats": [
+        394.0,
+        347.0,
+        431.5
+      ]
+    }
+  ]
+}

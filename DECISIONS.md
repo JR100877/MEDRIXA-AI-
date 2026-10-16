@@ -137,3 +137,15 @@ El middleware fija el `request_id` y siempre lo restablece en `finally`. Un filt
 ## ADR-030 — La E/S síncrona de la base serializa el bucle de eventos: medido, a resolver en P9 (P8.4)
 
 Prueba de carga local (`evidence/P8_load.json`): con PostgreSQL y pool, el rendimiento se queda en ~45–48 req/s entre 1 y 8 clientes, y la latencia p50 crece de forma lineal (20 → 179 ms). En memoria escala de 188 a 352 req/s. La causa son las llamadas síncronas de psycopg dentro de la ejecución asíncrona. No se corrige en P8 porque exige separar la ejecución del ciclo HTTP o hacer asíncrono el puerto de persistencia, un cambio de arquitectura que debe preservar la idempotencia, el fencing y el no reintento. Es la prioridad técnica de P9. `MEDRIXA_MAX_ACTIVE_RUNS=16` se mantiene: en la medición protege como se diseñó (rechaza con 503 en vez de degradar a todos).
+
+## ADR-031 — Experimento P9: hilo + bucle propio por ejecución (opción C) medido; no adoptado (PROPUESTO)
+
+Rama `exp/p9-execution-offload`. Detalle completo y reproducción en `docs/P9_EXPERIMENT.md`. Se añadió un gancho aditivo `execution` (por defecto `None`, comportamiento de P8 intacto) y un ejecutor experimental `ThreadLoopExecution`. Hallazgos:
+- **Bucle HTTP desbloqueado.** Con PostgreSQL y c=8, el retraso p99 del bucle baja de 115 a 21 ms y `/v1/health` p50 de 11,9 a 2,7 ms. En saturación, `/v1/health` p99 baja de 638 a 42 ms. El latido del arrendamiento sobrevive a un bucle HTTP bloqueado.
+- **Rendimiento con PostgreSQL:** +21 % (c=8) y +33 % (c=32) con pool 4, pero −14 % con c=1. Sin E/S (memoria) es −21 % a −28 %. El CPU por petición sube entre 13 % y 35 %.
+- **Techo de ~60–85 req/s por CPU y GIL, no por E/S ni por conexiones.** Un pool de 16 no lo sube. Cada ejecución hace 36 sentencias, 9 commits y 9 comprobaciones del pool, con ~13 ms de CPU.
+- **Compatibilidad:** 322 de 326 pruebas pasan con C forzada. Las 4 restantes comparten un `asyncio.Event` del bucle llamador con el agente. Esto impone una regla nueva de contrato de agentes; los de producción no se ven afectados.
+- **Semántica distinta:** cancelar la petición no cancela la ejecución (el reintento la reproduce) y el apagado espera a los hilos.
+- **Defecto hallado:** la plaza de capacidad se libera al cancelar mientras el hilo sigue en curso.
+
+Recomendación, pendiente de Robinson: no hacer A ahora. C solo endurecida y como mitigación. Reducir viajes por ejecución con autorización. B como arquitectura objetivo para trabajos prolongados y varios procesos.

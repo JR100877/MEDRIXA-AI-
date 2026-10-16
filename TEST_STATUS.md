@@ -207,3 +207,35 @@ Entorno: Python 3.13.16 y PostgreSQL 16.15 efímero local (`evidence/P7_environm
 | postgresql-pool4 max_active_runs=4 (saturation) | 32 | 91.1 | 333.27 | 621.8 | {'201': 180, '503': 220} |
 
 Interpretación en ADR-030: la E/S síncrona de PostgreSQL serializa el bucle de eventos.
+
+## P9 — experimento (rama `exp/p9-execution-offload`; EXPERIMENTAL, no adoptado)
+
+**Pruebas nuevas: 11** en `tests/experimental/test_thread_execution.py`, caracterizando inline frente a la opción C. Se repitieron 5 veces sin fallos.
+- **Garantías conservadas con C (5):** ejecución en hilos `medrixa-run`; duplicados concurrentes que se ejecutan una sola vez; lo mismo en PostgreSQL con pool y arrendamientos, más reproducción tras reinicio; `CAPACITY_EXCEEDED` y `RUNS_ACTIVE`; y `request_id` en los logs del hilo.
+- **Diferencias medidas (3):**
+  - Un agente ligado al bucle del llamador funciona inline y termina en `TIMEOUT` con C.
+  - Cancelar el cliente da `CANCELLED` inline y, con C, una reproducción de `REVIEW_REQUIRED`.
+  - **Defecto del prototipo:** la plaza de capacidad se libera antes de que termine el hilo.
+- **Capacidad de respuesta (2):** `/v1/health` se bloquea inline y no con C. El latido del arrendamiento con el bucle HTTP bloqueado da `CONFLICT` inline y la ejecución completa con C.
+- **Recursos (1):** hilos ≤ `max_active_runs`; el apagado espera las ejecuciones en curso.
+
+**Suite existente con C forzada** (`evidence/P9_suite_under_option_c.json`): 322 pruebas, 0 fallos y 0 errores. Se excluyen 4 pruebas que comparten un `asyncio.Event` del bucle de la prueba con el agente: se cuelgan con C (ver `docs/P9_EXPERIMENT.md` §3.1).
+
+**Regresión completa (comportamiento por defecto):** 337 pruebas (326 de P8 + 11), 0 fallos, 0 errores, 1 omitida como root. La omitida **pasa como usuario no privilegiado**. Con `MEDRIXA_TEST_PG=off` el resultado es `OK (skipped=94)`. Evidencia: `evidence/P9_regression.txt`.
+
+**Análisis estático:**
+- mypy 2.4.0 sobre `app/`: 0 hallazgos en 49 archivos.
+- `scripts/experiments` y `tests/experimental`: sin hallazgos propios.
+- ruff (E, F, W, B, S) sobre el código nuevo: limpio.
+- Los E501 preexistentes de P8 no se tocaron.
+
+**Mediciones** (2 CPU, 400 peticiones por escenario, 3 repeticiones intercaladas, mediana). Evidencia en `evidence/P9_compare.json`, `P9_compare_pool16.json` y `P9_run_profile.json`.
+
+| PostgreSQL pool 4, clientes/máx. | req/s inline → C | retraso del bucle p99 ms | `/v1/health` p99 ms |
+|---|---|---|---|
+| 1/16 | 46,1 → 39,8 | 24,2 → 2,0 | 21,2 → 4,4 |
+| 8/16 | 49,3 → 59,9 | 115 → 21 | 30,3 → 19,5 |
+| 32/16 | 62,9 → 83,6 | 262 → 129 | 289 → 155 |
+| 32/4 (saturación) | 170 → 394 (dominado por 503) | 99 → 27 | 638 → 42 |
+
+En memoria, C reduce el rendimiento entre 21 % y 28 %. Por ejecución: 36 sentencias SQL, 9 commits y ~13 ms de CPU. Interpretación en ADR-031 y `docs/P9_EXPERIMENT.md`.

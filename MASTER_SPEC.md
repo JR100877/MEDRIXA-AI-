@@ -54,6 +54,10 @@ Sigue prohibido: fusionar a la rama predeterminada, reescribir commits publicado
 - R28: sonda de preparación sin revelar detalles internos.
 - R29: correlación de registros por identificador de solicitud y medición reproducible de rendimiento.
 
+## Experimento P9 (autorización de Robinson, 16/10/2026, 13:03)
+
+- R30: investigar y validar de forma **experimental** cómo eliminar el bloqueo del bucle de eventos causado por la E/S síncrona de PostgreSQL, preservando la compatibilidad, la seguridad y la estabilidad de P8. Incluye: rama experimental independiente derivada de P8, evaluación de la opción C con atención a los agentes, mediciones comparables con la línea base y documentación de la opción B sin implementarla ni cambiar el contrato HTTP. Prohibido modificar el núcleo estable, la seguridad, el modelo de datos o los contratos públicos sin autorización; desplegar; fusionar; usar servicios de pago; elegir proveedores externos; hacer cambios irreversibles e implementar la arquitectura definitiva de P9 sin aprobación.
+
 ## Exclusiones del incremento
 
 Autenticación productiva, cifrado persistente, aislamiento de código no confiable, validación clínica, regulación, FHIR conforme, modelos LLM/ML y bases de conocimiento médicas. No se declararán implementados.

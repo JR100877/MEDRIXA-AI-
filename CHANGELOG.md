@@ -61,3 +61,21 @@ Se corrigieron dos fixtures de prueba intermitentes (firma "alterada" que podía
 - **P8.4:** prueba de carga local reproducible. Su hallazgo: la E/S síncrona de PostgreSQL serializa el bucle de eventos (ADR-030).
 
 Cambios aditivos: el código `NOT_READY`, `ReadyView` y dos rutas nuevas en OpenAPI. Sin dependencias nuevas. 21 pruebas nuevas; regresión 326 (1 omitida como root, verificada como no root). Siguiente: P9 (`docs/NEXT_PACKAGE.md`).
+
+## P9 (experimento) — 2026-10-16 (Colombia), rama `exp/p9-execution-offload` (base `dev/p8-observability` @ 486f815)
+
+**EXPERIMENTAL y no adoptado** (R30, ADR-031).
+- **Gancho aditivo** `execution=None` en `RunService` y `create_app`. Sin estrategia, el comportamiento es el de P8.
+- **Ejecutor experimental** `app/experimental/execution.py` (`ThreadLoopExecution`, opción C).
+- **11 pruebas de caracterización** en `tests/experimental/`.
+- **Scripts de experimento** en `scripts/experiments/`: comparación de carga, perfil por ejecución y la suite con C forzada.
+- **Evidencias:** `P9_compare.json`, `P9_compare_pool16.json`, `P9_run_profile.json`, `P9_suite_under_option_c.json` y `P9_regression.txt`.
+- **Informe:** `docs/P9_EXPERIMENT.md`, con la comparación de A, B y C y la recomendación.
+
+Sin cambios en el núcleo, la seguridad, el modelo de datos, los esquemas ni `contracts/http/openapi.v1.json`.
+
+**Regresión:** 337 pruebas OK (326 de P8 + 11), 1 omitida como root. La omitida pasa como usuario no privilegiado.
+
+**Defecto del prototipo documentado, no corregido:** la contabilidad de capacidad al cancelar con C.
+
+**Siguiente:** decisión de Robinson (`docs/P9_EXPERIMENT.md` §10).

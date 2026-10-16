@@ -40,3 +40,14 @@ No hay diagnóstico, tratamiento, cumplimiento regulatorio, certificación ni po
 | Logs de `psycopg.pool` | — | Pueden incluir host, usuario y base de datos (nunca contraseñas); encaminar a logs operativos |
 
 Detalle completo, STRIDE y límites de confianza en `docs/SECURITY.md`.
+
+## Riesgos evaluados en el experimento P9 (no adoptado; `docs/P9_EXPERIMENT.md`)
+
+| Riesgo | Hallazgo | Estado |
+|---|---|---|
+| Bucle HTTP bloqueado por E/S síncrona | La opción C lo resuelve de forma medible: retraso p99 −80 % a c=8 y latido del arrendamiento aislado | Prototipo experimental, no conectado por defecto |
+| Agentes con objetos asyncio compartidos | Con C se cuelgan o terminan en `TIMEOUT` (4 pruebas existentes) | Regla de contrato de agentes necesaria si se adopta C |
+| Contabilidad de capacidad al cancelar (C) | La plaza se libera antes de que el hilo termine y se admiten más ejecuciones de las que hay en curso | **Defecto conocido del prototipo**; corrección propuesta, no aplicada |
+| Cancelación por el cliente (C) | La ejecución no se cancela; el reintento la reproduce de forma idempotente | Semántica a aceptar o rechazar |
+| Apagado (C) | Espera a los hilos; el límite es el timeout cooperativo | Plazo de apagado necesario si se adopta |
+| Techo de rendimiento | CPU/GIL (~13 ms de CPU y 36 sentencias por ejecución), no conexiones | Reducir viajes (requiere autorización) o usar varios procesos (opción B) |

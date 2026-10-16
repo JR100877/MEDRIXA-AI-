@@ -137,3 +137,14 @@ GET /v1/ready ─► repository.ping() · authenticator.ready() · audit.ready()
 |---|---|---|
 | Observability | Métricas acotadas, preparación, correlación y carga medida | Trazas distribuidas y adaptador OpenTelemetry; retención |
 | Ejecución | Medido: la E/S síncrona de la base serializa el bucle | Ejecución fuera del ciclo HTTP o persistencia asíncrona (P9) |
+
+## Experimento P9 (rama `exp/p9-execution-offload`; EXPERIMENTAL, no adoptado)
+
+```
+POST /v1/runs ─► RunService._create_or_replay (reserva capacidad, idempotencia)
+                   └─ execute()  ── execution=None (P8, por defecto) ──► mismo bucle HTTP
+                                 └─ execution=ThreadLoopExecution ──► hilo medrixa-run-N ─► asyncio.run(execute())
+                                                                       (contextvars copiados; LeasedExecutor y agentes en el bucle del hilo)
+```
+
+El gancho es aditivo e interno (`create_app(..., execution=None)`) y no se configura por entorno. El núcleo, la seguridad, el modelo de datos y el contrato HTTP no cambian. Mediciones, diferencias de comportamiento y comparación de las opciones A, B y C en `docs/P9_EXPERIMENT.md`.

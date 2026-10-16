@@ -1,0 +1,33 @@
+{
+  "experiment": "P9 per-run CPU and SQL profile (inline, c=1, PostgreSQL pool 4)",
+  "python": "3.13.16",
+  "requests": 200,
+  "wall_ms_per_run": 26.88,
+  "cpu_ms_per_run": 18.49,
+  "cpu_share_of_wall": 0.69,
+  "sql_statements_per_run": 36.0,
+  "commits_per_run": 9.0,
+  "statement_kinds_per_run": {
+    "<empty query: psycopg-pool connection check>": 9.0,
+    "INSERT INTO": 8.0,
+    "SELECT RUN_ID,": 6.0,
+    "SELECT SEQUENCE,": 6.0,
+    "UPDATE MEDRIXA_RUNS": 6.0,
+    "UPDATE MEDRIXA_RUN_LEASES": 1.0
+  },
+  "profiled_own_time_share": {
+    "psycopg": 0.517,
+    "other": 0.245,
+    "asyncio": 0.048,
+    "pydantic": 0.044,
+    "medrixa core": 0.033,
+    "json": 0.027,
+    "starlette/fastapi": 0.025,
+    "httpx client": 0.025,
+    "medrixa persistence": 0.024,
+    "medrixa web": 0.011,
+    "medrixa agents": 0.001,
+    "hashing": 0.001
+  },
+  "note": "cProfile inflates Python-level overhead; shares are indicative, not absolute"
+}

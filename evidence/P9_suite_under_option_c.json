@@ -1,0 +1,15 @@
+{
+  "tests_run": 322,
+  "failures": 0,
+  "errors": 0,
+  "skipped": 1,
+  "excluded_loop_bound": [
+    "tests.persistence.test_postgres.PostgresHttpTests.test_concurrent_duplicates_and_restart_replay",
+    "tests.security.test_ratelimit.CapacityTests.test_capacity_exhaustion_refuses_without_creating_runs",
+    "tests.web.test_idempotency.IdempotencyConcurrencyTests.test_concurrent_duplicates_execute_once",
+    "tests.web.test_idempotency.IdempotencyConcurrencyTests.test_recovery_refused_while_a_run_executes_in_process"
+  ],
+  "apps_built_with_option_c": 60,
+  "apps_that_executed_runs_in_worker_threads": 26,
+  "broken": []
+}

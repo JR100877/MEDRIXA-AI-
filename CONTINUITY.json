@@ -2,17 +2,17 @@
   "project": "MEDRIXA AI",
   "session_date_bogota": "2026-10-16",
   "implementation_line": "provisional-2026-10-15",
-  "branch": "dev/p8-observability",
-  "base_branch": "dev/p7-security",
-  "base_commit": "19d279ba8faaa56272172976f42252f4b07a07e0",
+  "branch": "exp/p9-execution-offload",
+  "base_branch": "dev/p8-observability",
+  "base_commit": "486f815e0fcd15ae8654cd0761b971a53c4b6a6c",
   "remote": "https://github.com/JR100877/MEDRIXA-AI-",
-  "merge_status": "Nothing merged. P4 through P8 are unmerged development branches; merging into the default branch requires Robinson's authorization.",
+  "merge_status": "Nothing merged. P4 through P8 are unmerged development branches and exp/p9-execution-offload is an experimental branch; merging requires Robinson's authorization.",
   "historical_version": null,
   "historical_code_recovered": false,
   "code_origin": "new_authorized_provisional",
   "compatibility_with_historical_fields": "not_verified",
-  "phase": "P8_OBSERVABILITY",
-  "status": "tested_provisional",
+  "phase": "P9_EXPERIMENT",
+  "status": "experiment_complete_awaiting_decision",
   "completed_packages": [
     "P0",
     "P1",
@@ -100,13 +100,14 @@
   ],
   "tests": {
     "command": "python -m unittest discover -s tests -t . -v",
-    "passed": 325,
+    "passed": 336,
     "failed": 0,
     "errors": 0,
     "skipped": 1,
-    "evidence": "evidence/P8_regression.txt",
+    "evidence": "evidence/P9_regression.txt",
     "focused_evidence": "evidence/P8_tests.txt",
     "previous_evidence": [
+      "evidence/P8_regression.txt",
       "evidence/P7_regression.txt",
       "evidence/P6_regression.txt",
       "evidence/P5_regression.txt",
@@ -118,16 +119,21 @@
     "static_analysis": "ruff 0.16.8 E,F,W,B,S clean; mypy 2.4.0 (pydantic plugin, check_untyped_defs) 0 findings",
     "source_manifest": "evidence/SOURCE_MANIFEST.json",
     "postgres_tests_without_server": "skipped explicitly (MEDRIXA_TEST_PG=off -> OK skipped=93)",
-    "total": 326,
+    "total": 337,
     "skipped_detail": "tests.security.test_secrets unreadable-file test skips as root; executed separately as an unprivileged user: passed",
     "dependency_audit": "pip-audit 2.10.1, 26 pinned packages, no known vulnerabilities (2026-10-16): evidence/P7_dependency_audit.json",
     "measurements": [
       "evidence/P7_latency.json",
-      "evidence/P8_load.json"
+      "evidence/P8_load.json",
+      "evidence/P9_compare.json",
+      "evidence/P9_compare_pool16.json",
+      "evidence/P9_run_profile.json"
     ],
     "flaky_tests_fixed": "tampered-signature fixtures (P4b HMAC, P7 OIDC)",
     "p0_p7_tests": 305,
-    "new_p8_tests": 21
+    "new_p8_tests": 21,
+    "new_p9_experimental_tests": 11,
+    "option_c_forced_suite": "evidence/P9_suite_under_option_c.json (322 run, 0 failures, 4 loop-bound excluded)"
   },
   "runtime": {
     "python": "3.13.16",
@@ -150,9 +156,10 @@
     "docs/RISKS.md",
     "docs/REQUIREMENTS_TRACEABILITY.md",
     "docs/NEXT_PACKAGE.md",
-    "docs/SECURITY.md"
+    "docs/SECURITY.md",
+    "docs/P9_EXPERIMENT.md"
   ],
-  "next_task": "P9 (proposed): move run execution off the HTTP event loop (measured: synchronous DB I/O serialises it, ADR-030); evaluate thread-offload first, then 202 + worker (versioned contract), async persistence last",
+  "next_task": "Await Robinson's decision on P9 (docs/P9_EXPERIMENT.md section 10). Do not implement the definitive P9 architecture without approval.",
   "next_task_spec": "docs/NEXT_PACKAGE.md",
   "blocked_on_historical_files": false,
   "clinical_validation": "not_performed",
@@ -190,7 +197,8 @@
     "psycopg.pool logs may include host/user/dbname (never passwords)",
     "single organization enforced; no tenant column yet",
     "synchronous psycopg calls block the event loop: PostgreSQL throughput ~45-48 req/s flat from 1 to 8 clients (evidence/P8_load.json)",
-    "metrics are per process and in memory (no OpenTelemetry export yet)"
+    "metrics are per process and in memory (no OpenTelemetry export yet)",
+    "experimental option C (not wired): agents must not share asyncio objects with the caller; capacity slot released on cancel before the worker finishes; shutdown waits for threads"
   ],
   "resume_rule": "Read this file, TEST_STATUS and NEXT_PACKAGE; verify source manifest. Do not repeat historical audits or complete tests unless code changes or concrete risk requires it.",
   "branch_lineage": [
@@ -200,9 +208,10 @@
     "dev/p5-postgres @ e6022d59f6083ef4a918760431b03969c940c54b (P5)",
     "dev/p6-leases @ 5a6cd317794c91f91a7bea42f7fb06df5b427661 (P6)",
     "dev/p7-security @ 19d279ba8faaa56272172976f42252f4b07a07e0 (P7)",
-    "dev/p8-observability (P8, this branch)"
+    "dev/p8-observability @ 486f815e0fcd15ae8654cd0761b971a53c4b6a6c (P8)",
+    "exp/p9-execution-offload (P9 experiment, this branch; not a phase)"
   ],
-  "authorization": "Desarrollo autónomo supervisado, Robinson: 2026-10-15 21:39 (P4b-P6) and 2026-10-16 06:17 (P7+) — MASTER_SPEC.md R14-R26",
+  "authorization": "Desarrollo autónomo supervisado, Robinson: 2026-10-15 21:39 (P4b-P6) and 2026-10-16 06:17 (P7+) — MASTER_SPEC.md R14-R26; P9 experiment 2026-10-16 13:03 (R30)",
   "files_p4b": [
     "app/web/__init__.py",
     "app/web/__main__.py",
@@ -251,7 +260,8 @@
     "multi-tenancy isolation model (RLS / schema / database per organization)",
     "operational defaults: lease TTL (30 s provisional, measured margin ~1000x), token lifetime, rate limits",
     "automatic start-up recovery in the HTTP service",
-    "reprogramming of FHIR and Knowledge/AI Engine phases"
+    "reprogramming of FHIR and Knowledge/AI Engine phases",
+    "P9 architecture: hardened option C vs wait for option B; B contract; persistence round-trip reduction"
   ],
   "files_p6": [
     "app/persistence/leases.py",
@@ -313,5 +323,45 @@
     "scripts/load_test.py",
     "contracts/http/openapi.v1.json",
     "tests/observability/*"
-  ]
+  ],
+  "experiment_p9": {
+    "authorization": "Robinson 2026-10-16 13:03 (MASTER_SPEC R30): experimental research only",
+    "adopted": false,
+    "report": "docs/P9_EXPERIMENT.md",
+    "decision_record": "DECISIONS.md ADR-031 (PROPOSED)",
+    "code": [
+      "app/experimental/__init__.py",
+      "app/experimental/execution.py",
+      "app/web/service.py (additive execution=None hook)",
+      "app/web/app.py (additive execution=None hook)",
+      "scripts/experiments/p9_compare.py",
+      "scripts/experiments/p9_profile_run.py",
+      "scripts/experiments/p9_suite_under_thread.py",
+      "tests/experimental/test_thread_execution.py"
+    ],
+    "unchanged": "core, security, data model, migrations, domain schemas, contracts/http/openapi.v1.json",
+    "evidence": [
+      "evidence/P9_compare.json",
+      "evidence/P9_compare_pool16.json",
+      "evidence/P9_run_profile.json",
+      "evidence/P9_suite_under_option_c.json",
+      "evidence/P9_regression.txt"
+    ],
+    "findings": [
+      "option C unblocks the HTTP loop: PG c=8 loop-lag p99 115->21 ms, /v1/health p50 11.9->2.7 ms; saturation /v1/health p99 638->42 ms",
+      "option C throughput with PG pool4: +21% (c=8), +33% (c=32), -14% (c=1); memory store -21% to -28%; CPU per request +13% to +35%",
+      "ceiling ~60-85 req/s is CPU/GIL-bound (36 SQL statements, 9 commits, 9 pool checks, ~13 ms CPU per run); pool 16 does not raise it",
+      "322/326 existing tests pass with C forced; 4 hang because they share an asyncio.Event from the caller loop with the agent (new agent-contract rule)",
+      "C semantics: client cancellation does not cancel the run (idempotent replay); shutdown waits for threads",
+      "defect in prototype: capacity slot released on cancellation while the worker thread still runs (documented, not fixed)"
+    ],
+    "recommendation": "no A now; C only hardened as mitigation; reduce DB round trips (needs authorization); B as target for long jobs and multi-process scale",
+    "pending_decisions": [
+      "adopt hardened C or wait for B",
+      "authorize round-trip reduction in persistence",
+      "B contract: Prefer: respond-async on v1 vs /v2; cancellation semantics",
+      "shared rate limiter/capacity for multi-process",
+      "merge of P4-P8 and fate of experimental branch"
+    ]
+  }
 }
