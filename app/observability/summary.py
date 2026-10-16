@@ -17,6 +17,20 @@ class RunSummary(Contract):
     human_review_required: Literal[True] = True
 
 
+class RecoverySummary(Contract):
+    """Payload-free recovery counters for the CLI; no run or case identifiers."""
+    moved_to_review: Annotated[int, Field(ge=0)]
+    not_started: Annotated[int, Field(ge=0)]
+    already_terminal: Annotated[int, Field(ge=0)]
+    corrupt_records: Annotated[int, Field(ge=0)]
+    agents_reexecuted: Literal[0] = 0
+
+
+def summarize_recovery(report) -> RecoverySummary:
+    return RecoverySummary(moved_to_review=len(report.moved_to_review), not_started=len(report.not_started),
+                           already_terminal=report.already_terminal, corrupt_records=report.corrupt_records)
+
+
 def summarize(state: State) -> RunSummary:
     """Payload-free counters. No case identifiers, observations or findings."""
     state = State.model_validate(state)

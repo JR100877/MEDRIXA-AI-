@@ -1,0 +1,56 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "medrixa.prototype.v1",
+      "default": "medrixa.prototype.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "moved_to_review": {
+      "default": [],
+      "items": {
+        "maxLength": 80,
+        "minLength": 1,
+        "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+        "type": "string"
+      },
+      "maxItems": 100000,
+      "title": "Moved To Review",
+      "type": "array"
+    },
+    "not_started": {
+      "default": [],
+      "items": {
+        "maxLength": 80,
+        "minLength": 1,
+        "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+        "type": "string"
+      },
+      "maxItems": 100000,
+      "title": "Not Started",
+      "type": "array"
+    },
+    "already_terminal": {
+      "default": 0,
+      "minimum": 0,
+      "title": "Already Terminal",
+      "type": "integer"
+    },
+    "corrupt_records": {
+      "default": 0,
+      "minimum": 0,
+      "title": "Corrupt Records",
+      "type": "integer"
+    },
+    "agents_reexecuted": {
+      "default": 0,
+      "maximum": 0,
+      "minimum": 0,
+      "title": "Agents Reexecuted",
+      "type": "integer"
+    }
+  },
+  "title": "RecoveryReport",
+  "type": "object"
+}

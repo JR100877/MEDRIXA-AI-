@@ -1,0 +1,46 @@
+{
+  "additionalProperties": false,
+  "description": "Payload-free recovery counters for the CLI; no run or case identifiers.",
+  "properties": {
+    "schema_version": {
+      "const": "medrixa.prototype.v1",
+      "default": "medrixa.prototype.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "moved_to_review": {
+      "minimum": 0,
+      "title": "Moved To Review",
+      "type": "integer"
+    },
+    "not_started": {
+      "minimum": 0,
+      "title": "Not Started",
+      "type": "integer"
+    },
+    "already_terminal": {
+      "minimum": 0,
+      "title": "Already Terminal",
+      "type": "integer"
+    },
+    "corrupt_records": {
+      "minimum": 0,
+      "title": "Corrupt Records",
+      "type": "integer"
+    },
+    "agents_reexecuted": {
+      "const": 0,
+      "default": 0,
+      "title": "Agents Reexecuted",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "moved_to_review",
+    "not_started",
+    "already_terminal",
+    "corrupt_records"
+  ],
+  "title": "RecoverySummary",
+  "type": "object"
+}
