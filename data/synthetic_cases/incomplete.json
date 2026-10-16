@@ -1,0 +1,8 @@
+{
+  "schema_version": "medrixa.prototype.v1",
+  "case_id": "demo-synthetic-002",
+  "synthetic": true,
+  "source": "synthetic_fixture",
+  "history_available": true,
+  "observations": []
+}

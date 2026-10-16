@@ -10,3 +10,5 @@
 Recuperar el código histórico es una tarea paralela opcional: si aparece, conservarlo separado y comparar contratos antes de integrar. No bloquear los pasos independientes.
 
 Actualización P2: paquete 2 implementado; próximo P3.
+
+Actualización P3: paquetes 1–3 implementados y verificados. Próximo paso único: P4, puerto StateRepository y persistencia/recuperación transaccional sintética, antes del adaptador FastAPI. Ver `docs/NEXT_PACKAGE.md`.

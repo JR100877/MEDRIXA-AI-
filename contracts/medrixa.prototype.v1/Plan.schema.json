@@ -1,0 +1,65 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "medrixa.prototype.v1",
+      "default": "medrixa.prototype.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "action": {
+      "enum": [
+        "execute",
+        "collect_case_information",
+        "requires_human_review"
+      ],
+      "title": "Action",
+      "type": "string"
+    },
+    "step": {
+      "anyOf": [
+        {
+          "enum": [
+            "history_analysis",
+            "clinical_analysis"
+          ],
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Step"
+    },
+    "reason": {
+      "anyOf": [
+        {
+          "enum": [
+            "REVIEW_REQUIRED",
+            "MISSING_DATA",
+            "UNKNOWN_ROUTE",
+            "AGENT_ERROR",
+            "INVALID_RESULT",
+            "TIMEOUT",
+            "CANCELLED",
+            "STEP_LIMIT",
+            "INVALID_PLAN",
+            "INTERNAL_ERROR"
+          ],
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Reason"
+    }
+  },
+  "required": [
+    "action"
+  ],
+  "title": "Plan",
+  "type": "object"
+}

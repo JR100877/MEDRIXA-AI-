@@ -6,7 +6,7 @@ Pydantic model_copy(update=...) is deliberately not used for validated updates.
 from typing import Annotated, Literal
 from uuid import uuid4
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 Identifier = Annotated[str, Field(min_length=1, max_length=80, pattern=r"^[A-Za-z0-9][A-Za-z0-9_.:-]*$")]
 Step = Literal["history_analysis", "clinical_analysis"]
@@ -32,10 +32,17 @@ class Observation(Contract):
 
 class ClinicalCase(Contract):
     case_id: Identifier = Field(default_factory=new_id)
-    synthetic: Literal[True] = True
-    source: Literal["synthetic_fixture"] = "synthetic_fixture"
+    synthetic: Literal[True]
+    source: Literal["synthetic_fixture"]
     history_available: bool
     observations: Annotated[tuple[Observation, ...], Field(max_length=100)] = ()
+
+    @field_validator("synthetic", mode="before")
+    @classmethod
+    def explicit_synthetic_boolean(cls, value: object) -> object:
+        if value is not True:
+            raise ValueError("synthetic must be explicit boolean True")
+        return value
 
     @model_validator(mode="after")
     def validate_case(self) -> "ClinicalCase":
@@ -71,6 +78,13 @@ class AgentResult(Contract):
     status: Literal["completed", "abstained", "failed"]
     findings: Annotated[tuple[Finding, ...], Field(max_length=100)] = ()
     requires_human_review: Literal[True] = True
+
+    @field_validator("requires_human_review", mode="before")
+    @classmethod
+    def explicit_review_boolean(cls, value: object) -> object:
+        if value is not True:
+            raise ValueError("review flag must be boolean True")
+        return value
 
     @model_validator(mode="after")
     def review_is_mandatory(self) -> "AgentResult":

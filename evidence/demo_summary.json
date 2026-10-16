@@ -1,0 +1,11 @@
+{
+  "schema_version": "medrixa.prototype.v1",
+  "status": "awaiting_human_review",
+  "stop_reason": "REVIEW_REQUIRED",
+  "dispatched": 2,
+  "completed": 2,
+  "abstained": 0,
+  "failed": 0,
+  "events": 6,
+  "human_review_required": true
+}

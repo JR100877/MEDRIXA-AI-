@@ -2,7 +2,7 @@ from app.models.contracts import AgentMessage, AgentResult, ClinicalCase, Observ
 
 
 def case(case_id="synthetic-case-1", history=True, observations=True):
-    return ClinicalCase(case_id=case_id, history_available=history,
+    return ClinicalCase(case_id=case_id, synthetic=True, source="synthetic_fixture", history_available=history,
                         observations=(Observation(code="demo-measure", value=1.0, unit="demo-unit"),) if observations else ())
 
 

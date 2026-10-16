@@ -1,0 +1,27 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "medrixa.prototype.v1",
+      "default": "medrixa.prototype.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "max_steps": {
+      "default": 2,
+      "maximum": 10,
+      "minimum": 1,
+      "title": "Max Steps",
+      "type": "integer"
+    },
+    "agent_timeout_seconds": {
+      "default": 1.0,
+      "exclusiveMinimum": 0,
+      "maximum": 60,
+      "title": "Agent Timeout Seconds",
+      "type": "number"
+    }
+  },
+  "title": "ExecutionLimits",
+  "type": "object"
+}

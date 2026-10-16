@@ -24,3 +24,11 @@ RLock para modificaciones en un proceso, revisión esperada para evitar actualiz
 ## ADR-005 — Ejecución asíncrona acotada
 
 Agentes locales explícitos, dos pasos por defecto, sin descubrimiento de plugins, red ni reintentos automáticos. No se reintentan efectos no idempotentes. Cada ejecución posee un StateManager exclusivo; no se permite reiniciar una instancia usada. Las excepciones de agentes se convierten en códigos sin copiar mensajes al estado. CancelledError se registra y se propaga. Los timeouts de asyncio son cooperativos, no sandbox ni límite duro.
+
+## ADR-006 — Marcadores y frontera JSON
+
+La igualdad de Literal[True] admitía enteros en P1/P2. P3 exige booleano exacto antes de validar, y exige procedencia explícita en ClinicalCase. Se endurece este contrato nuevo antes de publicarlo; no se cambia una API histórica. Frontera de entrada local de 1 MiB, duplicados rechazados y errores uniformes.
+
+## ADR-007 — Trazabilidad estructural y revisión final
+
+State revalida la secuencia de eventos contra mensajes y resultados. No se llama auditoría inviolable: falta firma y persistencia externa. La CLI solo imprime contadores, no observaciones ni IDs. La comparación del tiempo monotónico rechaza respuestas tardías; no resuelve bloqueo infinito ni procesos hostiles.

@@ -34,3 +34,18 @@ MEDRIXA sigue independiente; ningún módulo importa NEXARIS ni necesita otro pr
 ## Implementación P2
 
 `Planner.create_plan(state)` devuelve Plan validado sin efectos; `Router.resolve(step)` devuelve un agente del registro sin ejecutarlo. Orchestrator crea AgentContext, espera al agente, valida/correlaciona AgentResult y delega transiciones al StateManager. HistoryAgent y ClinicalAgent comprueban presencia de datos; nunca interpretan valores ni generan diagnósticos. Todos los recorridos válidos terminan en revisión humana.
+
+## Estado actual tras P3
+
+| Área | Implementado | Pendiente |
+|---|---|---|
+| CORE | State, StateManager, contratos y transiciones | Persistencia y recuperación tras caída |
+| Agent Engine | Planner, Router, Orchestrator, dos simuladores | Aislamiento de agentes no confiables; más agentes |
+| Knowledge Engine | Dos comprobaciones técnicas de presencia dentro de agentes | Motor de conocimiento clínico, fuentes y validación |
+| Clinical Data | Modelos sintéticos y frontera JSON validada | Adaptador FHIR y perfiles |
+| AI Engine | Sin proveedor conectado | Puertos LLM/ML/RAG y evaluación |
+| Security | Validación, correlación, revisión humana y errores sin payload | AuthN/AuthZ, cifrado y controles productivos |
+| Observability | Eventos y resumen de contadores | Exportación a backend y retención segura |
+| Interface | CLI y ocho esquemas JSON | HTTP FastAPI y frontend |
+
+Los esquemas no representan endpoints activos. Esta línea no incorpora IoT. El repositorio y sus documentos se conservan; el estado de simulaciones sigue en memoria.

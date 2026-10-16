@@ -65,4 +65,46 @@ class State(Contract):
             raise ValueError("review needs reason")
         if self.status != "awaiting_human_review" and self.stop_reason is not None:
             raise ValueError("stop reason outside review state")
+        # Replay structural events: importing a snapshot must not create an
+        # impossible running state or conceal an uncorrelated result.
+        if self.status != "created" and not self.events:
+            raise ValueError("execution requires a start event")
+        message_index = result_index = 0
+        active = None
+        review_seen = False
+        for index, event in enumerate(self.events):
+            if review_seen:
+                raise ValueError("events after terminal review")
+            if event.kind != "REVIEW_REQUESTED" and event.reason is not None:
+                raise ValueError("unexpected reason")
+            if index == 0:
+                if event.kind != "RUN_STARTED" or event.message_id is not None:
+                    raise ValueError("first event must start the run")
+                continue
+            if event.kind == "AGENT_DISPATCHED":
+                if active is not None or message_index >= len(self.messages):
+                    raise ValueError("invalid dispatch sequence")
+                active = self.messages[message_index].message_id
+                if event.message_id != active:
+                    raise ValueError("dispatch does not match message")
+                message_index += 1
+            elif event.kind == "RESULT_ACCEPTED":
+                if active is None or result_index >= len(self.results):
+                    raise ValueError("result accepted without active request")
+                if event.message_id != active or self.results[result_index].message_id != active:
+                    raise ValueError("result sequence mismatch")
+                result_index += 1
+                active = None
+            elif event.kind == "REVIEW_REQUESTED":
+                if event.reason != self.stop_reason or event.reason is None or event.message_id is not None:
+                    raise ValueError("review event mismatch")
+                review_seen = True
+                active = None
+            else:
+                raise ValueError("duplicate start event")
+        if message_index != len(self.messages) or result_index != len(self.results):
+            raise ValueError("missing audit events")
+        pending_id = self.pending_message.message_id if self.pending_message else None
+        if active != pending_id or review_seen != (self.status == "awaiting_human_review"):
+            raise ValueError("final state and audit disagree")
         return self

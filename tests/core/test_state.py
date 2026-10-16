@@ -12,12 +12,12 @@ from tests.helpers import case, message, result
 class ContractTests(unittest.TestCase):
     def test_real_data_marker_rejected(self):
         with self.assertRaises(ValidationError):
-            ClinicalCase(history_available=True, synthetic=False)
+            ClinicalCase(history_available=True, synthetic=False, source="synthetic_fixture")
 
     def test_unknown_fields_and_coercion_rejected(self):
         for values in ({"history_available": "yes"}, {"history_available": True, "patient_name": "synthetic"}):
             with self.subTest(values=values), self.assertRaises(ValidationError):
-                ClinicalCase(**values)
+                ClinicalCase(synthetic=True, source="synthetic_fixture", **values)
 
     def test_nonfinite_observation_rejected(self):
         for value in (float("nan"), float("inf"), float("-inf")):
@@ -27,7 +27,7 @@ class ContractTests(unittest.TestCase):
     def test_duplicate_observation_rejected(self):
         obs = Observation(code="x", value=1.0, unit="u")
         with self.assertRaises(ValidationError):
-            ClinicalCase(history_available=True, observations=(obs, obs))
+            ClinicalCase(synthetic=True, source="synthetic_fixture", history_available=True, observations=(obs, obs))
 
     def test_snapshot_and_nested_case_frozen(self):
         state = State(case=case())
@@ -54,7 +54,7 @@ class ContractTests(unittest.TestCase):
             result(request, requires_human_review=False)
 
     def test_constructed_invalid_instance_revalidated(self):
-        invalid = ClinicalCase.model_construct(history_available=True, synthetic=False)
+        invalid = ClinicalCase.model_construct(history_available=True, synthetic=False, source="synthetic_fixture")
         with self.assertRaises(ValidationError):
             StateManager(invalid)
 

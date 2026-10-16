@@ -1,0 +1,463 @@
+{
+  "$defs": {
+    "AgentMessage": {
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "const": "medrixa.prototype.v1",
+          "default": "medrixa.prototype.v1",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "message_id": {
+          "maxLength": 80,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+          "title": "Message Id",
+          "type": "string"
+        },
+        "case_id": {
+          "maxLength": 80,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+          "title": "Case Id",
+          "type": "string"
+        },
+        "run_id": {
+          "maxLength": 80,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+          "title": "Run Id",
+          "type": "string"
+        },
+        "agent_id": {
+          "maxLength": 80,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+          "title": "Agent Id",
+          "type": "string"
+        },
+        "step": {
+          "enum": [
+            "history_analysis",
+            "clinical_analysis"
+          ],
+          "title": "Step",
+          "type": "string"
+        }
+      },
+      "required": [
+        "case_id",
+        "run_id",
+        "agent_id",
+        "step"
+      ],
+      "title": "AgentMessage",
+      "type": "object"
+    },
+    "AgentResult": {
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "const": "medrixa.prototype.v1",
+          "default": "medrixa.prototype.v1",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "result_id": {
+          "maxLength": 80,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+          "title": "Result Id",
+          "type": "string"
+        },
+        "message_id": {
+          "maxLength": 80,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+          "title": "Message Id",
+          "type": "string"
+        },
+        "case_id": {
+          "maxLength": 80,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+          "title": "Case Id",
+          "type": "string"
+        },
+        "run_id": {
+          "maxLength": 80,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+          "title": "Run Id",
+          "type": "string"
+        },
+        "agent_id": {
+          "maxLength": 80,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+          "title": "Agent Id",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "completed",
+            "abstained",
+            "failed"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "findings": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/Finding"
+          },
+          "maxItems": 100,
+          "title": "Findings",
+          "type": "array"
+        },
+        "requires_human_review": {
+          "const": true,
+          "default": true,
+          "title": "Requires Human Review",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "message_id",
+        "case_id",
+        "run_id",
+        "agent_id",
+        "status"
+      ],
+      "title": "AgentResult",
+      "type": "object"
+    },
+    "AuditEvent": {
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "const": "medrixa.prototype.v1",
+          "default": "medrixa.prototype.v1",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "sequence": {
+          "minimum": 1,
+          "title": "Sequence",
+          "type": "integer"
+        },
+        "case_id": {
+          "maxLength": 80,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+          "title": "Case Id",
+          "type": "string"
+        },
+        "run_id": {
+          "maxLength": 80,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+          "title": "Run Id",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "RUN_STARTED",
+            "AGENT_DISPATCHED",
+            "RESULT_ACCEPTED",
+            "REVIEW_REQUESTED"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "at": {
+          "format": "date-time",
+          "title": "At",
+          "type": "string"
+        },
+        "message_id": {
+          "anyOf": [
+            {
+              "maxLength": 80,
+              "minLength": 1,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Message Id"
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "enum": [
+                "REVIEW_REQUIRED",
+                "MISSING_DATA",
+                "UNKNOWN_ROUTE",
+                "AGENT_ERROR",
+                "INVALID_RESULT",
+                "TIMEOUT",
+                "CANCELLED",
+                "STEP_LIMIT",
+                "INVALID_PLAN",
+                "INTERNAL_ERROR"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reason"
+        }
+      },
+      "required": [
+        "sequence",
+        "case_id",
+        "run_id",
+        "kind",
+        "at"
+      ],
+      "title": "AuditEvent",
+      "type": "object"
+    },
+    "ClinicalCase": {
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "const": "medrixa.prototype.v1",
+          "default": "medrixa.prototype.v1",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "case_id": {
+          "maxLength": 80,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+          "title": "Case Id",
+          "type": "string"
+        },
+        "synthetic": {
+          "const": true,
+          "title": "Synthetic",
+          "type": "boolean"
+        },
+        "source": {
+          "const": "synthetic_fixture",
+          "title": "Source",
+          "type": "string"
+        },
+        "history_available": {
+          "title": "History Available",
+          "type": "boolean"
+        },
+        "observations": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/Observation"
+          },
+          "maxItems": 100,
+          "title": "Observations",
+          "type": "array"
+        }
+      },
+      "required": [
+        "synthetic",
+        "source",
+        "history_available"
+      ],
+      "title": "ClinicalCase",
+      "type": "object"
+    },
+    "Finding": {
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "const": "medrixa.prototype.v1",
+          "default": "medrixa.prototype.v1",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "code": {
+          "enum": [
+            "HISTORY_PRESENT",
+            "HISTORY_MISSING",
+            "OBSERVATIONS_PRESENT",
+            "OBSERVATIONS_MISSING",
+            "SYNTHETIC_ONLY"
+          ],
+          "title": "Code",
+          "type": "string"
+        },
+        "source": {
+          "const": "synthetic_completeness_rule",
+          "default": "synthetic_completeness_rule",
+          "title": "Source",
+          "type": "string"
+        },
+        "rule_id": {
+          "maxLength": 80,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+          "title": "Rule Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "code",
+        "rule_id"
+      ],
+      "title": "Finding",
+      "type": "object"
+    },
+    "Observation": {
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "const": "medrixa.prototype.v1",
+          "default": "medrixa.prototype.v1",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "code": {
+          "maxLength": 80,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+          "title": "Code",
+          "type": "string"
+        },
+        "value": {
+          "title": "Value",
+          "type": "number"
+        },
+        "unit": {
+          "maxLength": 80,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+          "title": "Unit",
+          "type": "string"
+        },
+        "source": {
+          "const": "synthetic_fixture",
+          "default": "synthetic_fixture",
+          "title": "Source",
+          "type": "string"
+        }
+      },
+      "required": [
+        "code",
+        "value",
+        "unit"
+      ],
+      "title": "Observation",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "medrixa.prototype.v1",
+      "default": "medrixa.prototype.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "case": {
+      "$ref": "#/$defs/ClinicalCase"
+    },
+    "run_id": {
+      "maxLength": 80,
+      "minLength": 1,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+      "title": "Run Id",
+      "type": "string"
+    },
+    "revision": {
+      "default": 0,
+      "minimum": 0,
+      "title": "Revision",
+      "type": "integer"
+    },
+    "status": {
+      "default": "created",
+      "enum": [
+        "created",
+        "running",
+        "awaiting_human_review"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "pending_message": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/AgentMessage"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "messages": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/AgentMessage"
+      },
+      "maxItems": 10,
+      "title": "Messages",
+      "type": "array"
+    },
+    "results": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/AgentResult"
+      },
+      "maxItems": 10,
+      "title": "Results",
+      "type": "array"
+    },
+    "events": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/AuditEvent"
+      },
+      "title": "Events",
+      "type": "array"
+    },
+    "stop_reason": {
+      "anyOf": [
+        {
+          "enum": [
+            "REVIEW_REQUIRED",
+            "MISSING_DATA",
+            "UNKNOWN_ROUTE",
+            "AGENT_ERROR",
+            "INVALID_RESULT",
+            "TIMEOUT",
+            "CANCELLED",
+            "STEP_LIMIT",
+            "INVALID_PLAN",
+            "INTERNAL_ERROR"
+          ],
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Stop Reason"
+    }
+  },
+  "required": [
+    "case"
+  ],
+  "title": "State",
+  "type": "object"
+}

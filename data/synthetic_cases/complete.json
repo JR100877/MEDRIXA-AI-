@@ -1,0 +1,10 @@
+{
+  "schema_version": "medrixa.prototype.v1",
+  "case_id": "demo-synthetic-001",
+  "synthetic": true,
+  "source": "synthetic_fixture",
+  "history_available": true,
+  "observations": [
+    {"code": "demo-measure", "value": 1.0, "unit": "demo-unit", "source": "synthetic_fixture"}
+  ]
+}

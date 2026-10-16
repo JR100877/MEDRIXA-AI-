@@ -1,4 +1,5 @@
 import asyncio
+import time
 from typing import Annotated
 
 from pydantic import Field, ValidationError
@@ -48,6 +49,10 @@ class Orchestrator:
                     return self._review(manager, "STEP_LIMIT")
                 if any(m.step == plan.step for m in state.messages):
                     return self._review(manager, "INVALID_PLAN")
+                # Sequence invariant independent of the Planner implementation.
+                expected = "history_analysis" if not state.messages else "clinical_analysis"
+                if plan.step != expected or not state.case.history_available or any(r.status != "completed" for r in state.results):
+                    return self._review(manager, "INVALID_PLAN")
                 try:
                     agent = self.router.resolve(plan.step)
                 except UnknownRoute:
@@ -57,11 +62,16 @@ class Orchestrator:
                 state = manager.dispatch(request, state.revision)
                 context = AgentContext(case=state.case, message=request, prior_results=state.results)
                 try:
+                    started = time.monotonic()
                     raw_result = await asyncio.wait_for(agent.execute(context), timeout=self.limits.agent_timeout_seconds)
                 except TimeoutError:
                     return self._review(manager, "TIMEOUT")
                 except Exception:
                     return self._review(manager, "AGENT_ERROR")
+                # A cancellation-suppressing agent may return after wait_for's
+                # deadline. Reject that late result, without claiming hard isolation.
+                if time.monotonic() - started > self.limits.agent_timeout_seconds:
+                    return self._review(manager, "TIMEOUT")
                 try:
                     result = AgentResult.model_validate(raw_result)
                     state = manager.accept(result, state.revision)

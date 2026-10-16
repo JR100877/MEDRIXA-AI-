@@ -1,0 +1,92 @@
+{
+  "$defs": {
+    "Observation": {
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "const": "medrixa.prototype.v1",
+          "default": "medrixa.prototype.v1",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "code": {
+          "maxLength": 80,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+          "title": "Code",
+          "type": "string"
+        },
+        "value": {
+          "title": "Value",
+          "type": "number"
+        },
+        "unit": {
+          "maxLength": 80,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+          "title": "Unit",
+          "type": "string"
+        },
+        "source": {
+          "const": "synthetic_fixture",
+          "default": "synthetic_fixture",
+          "title": "Source",
+          "type": "string"
+        }
+      },
+      "required": [
+        "code",
+        "value",
+        "unit"
+      ],
+      "title": "Observation",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "medrixa.prototype.v1",
+      "default": "medrixa.prototype.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "case_id": {
+      "maxLength": 80,
+      "minLength": 1,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*$",
+      "title": "Case Id",
+      "type": "string"
+    },
+    "synthetic": {
+      "const": true,
+      "title": "Synthetic",
+      "type": "boolean"
+    },
+    "source": {
+      "const": "synthetic_fixture",
+      "title": "Source",
+      "type": "string"
+    },
+    "history_available": {
+      "title": "History Available",
+      "type": "boolean"
+    },
+    "observations": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/Observation"
+      },
+      "maxItems": 100,
+      "title": "Observations",
+      "type": "array"
+    }
+  },
+  "required": [
+    "synthetic",
+    "source",
+    "history_available"
+  ],
+  "title": "ClinicalCase",
+  "type": "object"
+}

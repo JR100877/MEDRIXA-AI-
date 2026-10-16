@@ -1,0 +1,85 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "medrixa.prototype.v1",
+      "default": "medrixa.prototype.v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "created",
+        "running",
+        "awaiting_human_review"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "stop_reason": {
+      "anyOf": [
+        {
+          "enum": [
+            "REVIEW_REQUIRED",
+            "MISSING_DATA",
+            "UNKNOWN_ROUTE",
+            "AGENT_ERROR",
+            "INVALID_RESULT",
+            "TIMEOUT",
+            "CANCELLED",
+            "STEP_LIMIT",
+            "INVALID_PLAN",
+            "INTERNAL_ERROR"
+          ],
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Stop Reason"
+    },
+    "dispatched": {
+      "minimum": 0,
+      "title": "Dispatched",
+      "type": "integer"
+    },
+    "completed": {
+      "minimum": 0,
+      "title": "Completed",
+      "type": "integer"
+    },
+    "abstained": {
+      "minimum": 0,
+      "title": "Abstained",
+      "type": "integer"
+    },
+    "failed": {
+      "minimum": 0,
+      "title": "Failed",
+      "type": "integer"
+    },
+    "events": {
+      "minimum": 0,
+      "title": "Events",
+      "type": "integer"
+    },
+    "human_review_required": {
+      "const": true,
+      "default": true,
+      "title": "Human Review Required",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "status",
+    "stop_reason",
+    "dispatched",
+    "completed",
+    "abstained",
+    "failed",
+    "events"
+  ],
+  "title": "RunSummary",
+  "type": "object"
+}
