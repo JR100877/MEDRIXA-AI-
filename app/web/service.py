@@ -52,7 +52,7 @@ class RunService:
     def __init__(self, repository: StateRepository, audit: AuditSink,
                  runner_factory: Callable = create_runner, leases: RunLeases | None = None,
                  lease_ttl_seconds: float = DEFAULT_TTL_SECONDS, max_active_runs: int = 16,
-                 metrics: Metrics | None = None):
+                 metrics: Metrics | None = None, execution=None):
         if not isinstance(repository, StateRepository) or not isinstance(audit, AuditSink):
             raise TypeError("repository and audit sink ports are required")
         self.repository = repository
@@ -62,6 +62,9 @@ class RunService:
                           if leases is not None else None)
         self._audit = audit
         self._runner_factory = runner_factory
+        # P9 experiment hook: where a run executes. None = inline in the caller's event loop
+        # (P8 behaviour, unchanged). See app/experimental/execution.py.
+        self._execution = execution
         self._active_lock = Lock()
         self._active = 0
         if type(max_active_runs) is not int or max_active_runs < 1:
@@ -148,11 +151,12 @@ class RunService:
             raise ApiError("INVALID_INPUT") from None
         except Exception as exc:
             raise _storage_error(exc) from None
-        try:
+        async def execute() -> State:
             if self._executor is not None:
-                final = await self._executor.run(self._runner_factory(), manager)
-            else:
-                final = await self._runner_factory().run(manager)
+                return await self._executor.run(self._runner_factory(), manager)
+            return await self._runner_factory().run(manager)
+        try:
+            final = await (execute() if self._execution is None else self._execution(execute))
         except (LeaseHeld, LeaseLost):
             # Execution stopped without retry; the run is left for recovery and human review.
             raise ApiError("CONFLICT") from None

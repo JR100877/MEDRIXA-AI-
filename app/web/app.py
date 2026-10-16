@@ -60,7 +60,8 @@ def _json(model, status: int = 200, headers: dict | None = None) -> JSONResponse
 
 def create_app(settings: Settings, repository: StateRepository | None = None,
                audit: AuditSink | None = None, authenticator: Authenticator | None = None,
-               runner_factory=None, leases=None, metrics: InMemoryMetrics | None = None) -> FastAPI:
+               runner_factory=None, leases=None, metrics: InMemoryMetrics | None = None,
+               execution=None) -> FastAPI:
     settings = Settings.model_validate(settings)
     if repository is None:
         if settings.postgres_dsn is not None:
@@ -93,7 +94,7 @@ def create_app(settings: Settings, repository: StateRepository | None = None,
     registry = metrics if metrics is not None else InMemoryMetrics()  # P8
     service = RunService(repository, audit or LoggingAuditSink(), leases=leases,
                          lease_ttl_seconds=settings.lease_ttl_seconds, max_active_runs=settings.max_active_runs,
-                         metrics=registry, **service_args)
+                         metrics=registry, execution=execution, **service_args)
     registry.add_collector(lambda m: m.set_gauge("medrixa_active_runs", service.active_runs))
     pool = getattr(repository, "_pool", None)
     if pool is not None:
