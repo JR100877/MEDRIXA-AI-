@@ -40,11 +40,11 @@ cd medrixa_repo
 git log --oneline
 ```
 
-El árbol entregado está en `medrixa_provisional/`; el repositorio clonado contiene lo mismo y su historial. No hay remoto configurado ni despliegue.
+El árbol entregado está en `medrixa_provisional/`; el repositorio clonado contiene lo mismo y su historial. Desde el 15/10/2026 la referencia es GitHub: https://github.com/JR100877/MEDRIXA-AI- (ramas de desarrollo sin fusionar; ver `CONTINUITY.json`). No hay despliegue.
 
 ## Contratos y límites
 
-Diez JSON Schema se conservan en `contracts/medrixa.prototype.v1/`; regenerar con `python -m scripts.export_schemas`. `docs/API_CONTRACT.md` delimita la frontera local y la futura API. `docs/REQUIREMENTS_TRACEABILITY.md` relaciona requisitos con pruebas. `docs/RISKS.md` registra límites técnicos y clínicos.
+Diez JSON Schema se conservan en `contracts/medrixa.prototype.v1/`; regenerar con `python -m scripts.export_schemas`. `docs/API_CONTRACT.md` delimita la frontera local y `docs/HTTP_API.md` la API HTTP (contrato `contracts/http/openapi.v1.json`). `docs/REQUIREMENTS_TRACEABILITY.md` relaciona requisitos con pruebas. `docs/RISKS.md` registra límites técnicos y clínicos.
 
 ## Persistencia (P4, rama `dev/p4-persistence`)
 
@@ -55,4 +55,17 @@ python -m app --store ./runs --recover            # tras un reinicio: interrumpi
 
 El almacenamiento duradero existe solo mediante el adaptador local provisional de un equipo; PostgreSQL es el destino previsto y **no está implementado**. La recuperación nunca reejecuta agentes. P4 se probó con Python 3.13.16 (P1–P3 con 3.12.14). Ver `docs/PERSISTENCE.md`.
 
-No hay servidor web, motor clínico validado, FHIR implementado ni integración LLM/ML. La próxima tarea exacta está en `CONTINUITY.json` y `docs/NEXT_PACKAGE.md`.
+## API HTTP local (P4b, rama `dev/p4b-http`)
+
+```bash
+python -m pip install -r requirements-dev.txt     # fastapi, httpx, uvicorn, ruff (versiones fijadas)
+export MEDRIXA_ENV=development                     # solo development o test; production se rechaza
+export MEDRIXA_AUTH_SECRET="$(python -c 'import secrets; print(secrets.token_urlsafe(48))')"
+export MEDRIXA_STORE_DIR=./runs                   # opcional; sin él, la API usa memoria
+python -m app.web issue-token --sub dev-1 --role case_runner --case demo-synthetic-001
+python -m app.web serve --port 8000               # solo 127.0.0.1; OpenAPI en /docs (development)
+```
+
+Con autenticación HMAC **provisional** (no es un proveedor de identidad), autorización por caso, `Idempotency-Key` obligatoria y errores uniformes. Ver `docs/HTTP_API.md`.
+
+No hay despliegue, motor clínico validado, FHIR implementado ni integración LLM/ML. La próxima tarea exacta está en `CONTINUITY.json` y `docs/NEXT_PACKAGE.md`.

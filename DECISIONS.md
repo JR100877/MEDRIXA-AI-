@@ -44,3 +44,23 @@ Toda ejecución `running` hallada tras un reinicio pasa a revisión humana con e
 ## ADR-010 — Persistir antes de publicar
 
 `StateManager._commit` delega en un gancho `_publish` (comportamiento P1–P3 idéntico). `PersistentStateManager` lo sobrescribe para escribir en el repositorio antes de actualizar memoria: un fallo de almacenamiento no deja estado en memoria por delante del almacenado. Las 52 pruebas previas pasan sin modificación.
+
+## ADR-011 — Adaptador HTTP FastAPI local sobre un servicio independiente del transporte (P4b)
+
+`RunService` (`app/web/service.py`) concentra autorización, idempotencia, auditoría y ejecución; FastAPI solo traduce HTTP. Contratos HTTP versionados `medrixa.http.v1` con base estricta propia (sin `schema_version` de dominio). El cuerpo se lee con límite propio y se valida con el mismo parser estricto de P3 (`parse_strict`, refactor sin cambio de comportamiento). Dependencias nuevas fijadas: fastapi 0.143.2 (runtime), httpx 0.28.1, uvicorn 0.53.0 y ruff 0.16.8 (desarrollo). Sin perfil productivo.
+
+## ADR-012 — Idempotencia por run_id determinista
+
+`run_id = idem-SHA256(dominio|sujeto|clave)`. Reutiliza la creación atómica de `StateRepository` (P4) como barrera de duplicados: duradera entre reinicios y procesos sin almacén de claves adicional. `PersistentStateManager` recibe `run_id` opcional (aditivo). La huella de la petición es el `ClinicalCase` completo, por eso `case_id` es obligatorio en HTTP. Ejecuciones no terminadas responden 409 y nunca se reejecutan; tras recuperación se reproducen con `INTERRUPTED`.
+
+## ADR-013 — Autenticación por puerto; token HMAC provisional
+
+La API depende de `Authenticator`/`Principal`. El adaptador HMAC local (secreto compartido ≥32 bytes, sin valor por defecto) verifica firma en tiempo constante, emisor, audiencia, expiración, vida máxima y claims estrictos. No es un proveedor de identidad: sin revocación ni rotación. Producción requiere OIDC/IdP (pendiente, P7).
+
+## ADR-014 — Autorización mínima con denegación por defecto y 404 en accesos cruzados
+
+Tres roles explícitos; ningún permiso de aprobación clínica existe. Permisos con alcance por caso; lecturas fuera de alcance responden igual que un recurso inexistente. El operador recupera pero no lee ejecuciones.
+
+## ADR-015 — Errores uniformes y auditoría de accesos que falla cerrada
+
+Catálogo fijo de códigos y mensajes; manejadores propios reemplazan el 422 de FastAPI (que repite la entrada). La auditoría de mutaciones ocurre antes de los efectos; si el sink no puede registrar (incluido un logger sin configurar, hallado en la prueba con servidor real), la operación se rechaza con 503.

@@ -1,0 +1,52 @@
+test_agent_failure_is_a_completed_http_call_ending_in_review (tests.web.test_adverse.AdverseTests.test_agent_failure_is_a_completed_http_call_ending_in_review) ... ok
+test_audit_failure_refuses_operation_before_side_effects (tests.web.test_adverse.AdverseTests.test_audit_failure_refuses_operation_before_side_effects) ... ok
+test_audit_outcome_recorded_for_failed_create (tests.web.test_adverse.AdverseTests.test_audit_outcome_recorded_for_failed_create) ... ok
+test_clock_rollback_cannot_extend_token (tests.web.test_adverse.AdverseTests.test_clock_rollback_cannot_extend_token) ... ok
+test_corrupt_record_is_500_integrity_error (tests.web.test_adverse.AdverseTests.test_corrupt_record_is_500_integrity_error) ... ok
+test_storage_failure_is_503_without_details (tests.web.test_adverse.AdverseTests.test_storage_failure_is_503_without_details) ... ok
+test_unconfigured_audit_logger_fails_closed_configured_one_emits (tests.web.test_adverse.AdverseTests.test_unconfigured_audit_logger_fails_closed_configured_one_emits) ... ok
+test_unexpected_exception_is_generic_500 (tests.web.test_adverse.AdverseTests.test_unexpected_exception_is_generic_500) ... ok
+test_issue_token_verifies_and_secret_never_printed (tests.web.test_adverse.WebCliTests.test_issue_token_verifies_and_secret_never_printed) ... ok
+test_refusals (tests.web.test_adverse.WebCliTests.test_refusals) ... ok
+test_default_deny_and_case_scope (tests.web.test_auth_unit.PolicyTests.test_default_deny_and_case_scope) ... ok
+test_role_matrix_is_least_privilege (tests.web.test_auth_unit.PolicyTests.test_role_matrix_is_least_privilege) ... ok
+test_production_and_unknown_environments_refused (tests.web.test_auth_unit.SettingsTests.test_production_and_unknown_environments_refused) ... ok
+test_secret_hidden_in_repr_and_dump (tests.web.test_auth_unit.SettingsTests.test_secret_hidden_in_repr_and_dump) ... ok
+test_weak_or_missing_secret_refused_without_echo (tests.web.test_auth_unit.SettingsTests.test_weak_or_missing_secret_refused_without_echo) ... ok
+test_wildcard_hosts_refused_and_docs_only_in_development (tests.web.test_auth_unit.SettingsTests.test_wildcard_hosts_refused_and_docs_only_in_development) ... ok
+test_claim_checks (tests.web.test_auth_unit.TokenTests.test_claim_checks) ... ok
+test_clock_skew_tolerated_within_bound (tests.web.test_auth_unit.TokenTests.test_clock_skew_tolerated_within_bound) ... ok
+test_signature_and_format_failures_are_uniform (tests.web.test_auth_unit.TokenTests.test_signature_and_format_failures_are_uniform) ... ok
+test_valid_token_yields_principal (tests.web.test_auth_unit.TokenTests.test_valid_token_yields_principal) ... ok
+test_access_audit_records_identity_without_sensitive_data (tests.web.test_authorization.AuthorizationTests.test_access_audit_records_identity_without_sensitive_data) ... ok
+test_create_requires_role_and_case_scope (tests.web.test_authorization.AuthorizationTests.test_create_requires_role_and_case_scope) ... ok
+test_cross_case_read_is_indistinguishable_from_missing (tests.web.test_authorization.AuthorizationTests.test_cross_case_read_is_indistinguishable_from_missing) ... ok
+test_every_protected_route_requires_authentication (tests.web.test_authorization.AuthorizationTests.test_every_protected_route_requires_authentication) ... ok
+test_operator_recovers_but_cannot_read_runs (tests.web.test_authorization.AuthorizationTests.test_operator_recovers_but_cannot_read_runs) ... ok
+test_reviewer_reads_only_own_cases (tests.web.test_authorization.AuthorizationTests.test_reviewer_reads_only_own_cases) ... ok
+test_unauthenticated_request_is_rejected_before_body_or_key_checks (tests.web.test_authorization.AuthorizationTests.test_unauthenticated_request_is_rejected_before_body_or_key_checks) ... ok
+test_create_returns_versioned_view_without_payload (tests.web.test_http_contract.HttpContractTests.test_create_returns_versioned_view_without_payload) ... ok
+test_docs_disabled_in_test_enabled_in_development (tests.web.test_http_contract.HttpContractTests.test_docs_disabled_in_test_enabled_in_development) ... ok
+test_framework_validation_errors_use_envelope_without_echo (tests.web.test_http_contract.HttpContractTests.test_framework_validation_errors_use_envelope_without_echo) ... ok
+test_health_needs_no_credentials_and_reveals_nothing (tests.web.test_http_contract.HttpContractTests.test_health_needs_no_credentials_and_reveals_nothing) ... ok
+test_input_rejections_never_echo_input (tests.web.test_http_contract.HttpContractTests.test_input_rejections_never_echo_input) ... ok
+test_media_type_and_size_limits (tests.web.test_http_contract.HttpContractTests.test_media_type_and_size_limits) ... ok
+test_published_openapi_matches_application (tests.web.test_http_contract.HttpContractTests.test_published_openapi_matches_application) ... ok
+test_read_run_and_events (tests.web.test_http_contract.HttpContractTests.test_read_run_and_events) ... ok
+test_security_headers_and_request_id (tests.web.test_http_contract.HttpContractTests.test_security_headers_and_request_id) ... ok
+test_unknown_route_method_and_host (tests.web.test_http_contract.HttpContractTests.test_unknown_route_method_and_host) ... ok
+test_concurrent_duplicates_execute_once (tests.web.test_idempotency.IdempotencyConcurrencyTests.test_concurrent_duplicates_execute_once) ... ok
+test_distinct_keys_run_independently (tests.web.test_idempotency.IdempotencyConcurrencyTests.test_distinct_keys_run_independently) ... ok
+test_recovery_refused_while_a_run_executes_in_process (tests.web.test_idempotency.IdempotencyConcurrencyTests.test_recovery_refused_while_a_run_executes_in_process) ... ok
+test_simultaneous_first_requests_have_a_single_winner (tests.web.test_idempotency.IdempotencyConcurrencyTests.test_simultaneous_first_requests_have_a_single_winner) ... ok
+test_idempotency_survives_restart_with_file_store (tests.web.test_idempotency.IdempotencySyncTests.test_idempotency_survives_restart_with_file_store) ... ok
+test_interrupted_run_conflicts_until_recovered_then_replays (tests.web.test_idempotency.IdempotencySyncTests.test_interrupted_run_conflicts_until_recovered_then_replays) ... ok
+test_key_required_and_validated (tests.web.test_idempotency.IdempotencySyncTests.test_key_required_and_validated) ... ok
+test_keys_are_scoped_per_subject (tests.web.test_idempotency.IdempotencySyncTests.test_keys_are_scoped_per_subject) ... ok
+test_retry_replays_identical_response_without_reexecution (tests.web.test_idempotency.IdempotencySyncTests.test_retry_replays_identical_response_without_reexecution) ... ok
+test_same_key_different_body_rejected_original_kept (tests.web.test_idempotency.IdempotencySyncTests.test_same_key_different_body_rejected_original_kept) ... ok
+
+----------------------------------------------------------------------
+Ran 47 tests in 2.731s
+
+OK

@@ -1,6 +1,6 @@
 # Frontera de intercambio provisional
 
-Estado: implementada como función local y CLI. **No hay servidor HTTP ni endpoints implementados.** FastAPI permanece como tecnología histórica prevista.
+Estado: implementada como función local y CLI. **Desde P4b** también existe un adaptador HTTP FastAPI local (`medrixa.http.v1`), documentado en `docs/HTTP_API.md`. Reutiliza esta misma frontera estricta mediante `parse_strict`. No hay despliegue.
 
 ## Entrada local
 
@@ -28,6 +28,6 @@ Cada esquema incluye `schema_version: medrixa.prototype.v1`. Son contratos nuevo
 - `python -m app --store DIR [--case FILE]`: ejecuta y persiste en el adaptador local **provisional**. Si el directorio no puede abrirse, imprime `{"error":"STORE_UNAVAILABLE"}` y retorna 2. Si el almacén falla durante la ejecución, imprime lo mismo y retorna 1; el registro conserva la última revisión persistida. Esta segunda ruta está cubierta en pruebas del gestor, no en una prueba de CLI.
 - `python -m app --store DIR --recover`: imprime `RecoverySummary` (solo contadores, sin identificadores) y retorna 0, o 1 si hay registros corruptos. `--recover` sin `--store`, o junto con `--case`, retorna 2 con `INVALID_INPUT`.
 
-## Adaptador HTTP futuro (diseño, no implementación)
+## Adaptador HTTP (P4b, implementado localmente)
 
-P4b definirá el adaptador FastAPI sobre el servicio y el repositorio. Antes de exponerlo: autenticación, autorización por caso, límites de petición, política de errores y reintentos, idempotencia, persistencia, exclusión de cuerpos sensibles de logs y pruebas de acceso. No se publica una URL ni se generan credenciales ficticias. La interfaz futura será independiente de NEXARIS.
+Ver `docs/HTTP_API.md`, que cubre endpoints, autenticación, autorización, idempotencia, errores y seguridad, y el contrato `contracts/http/openapi.v1.json`. No se publica ninguna URL ni se generan credenciales: los tokens son locales y se firman con un secreto que provee quien ejecuta. La interfaz sigue siendo independiente de NEXARIS.

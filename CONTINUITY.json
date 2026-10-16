@@ -2,23 +2,24 @@
   "project": "MEDRIXA AI",
   "session_date_bogota": "2026-10-15",
   "implementation_line": "provisional-2026-10-15",
-  "branch": "dev/p4-persistence",
-  "base_branch": "provisional/2026-10-15",
-  "base_commit": "8ee8cdc4cf4a0da14ea9f0d3cb8b467531ce9246",
+  "branch": "dev/p4b-http",
+  "base_branch": "dev/p4-persistence",
+  "base_commit": "97592da9fc15b7e83a7572739b5e91bccec020ac",
   "remote": "https://github.com/JR100877/MEDRIXA-AI-",
-  "merge_status": "P4 not merged; merging requires Robinson's authorization",
+  "merge_status": "Nothing merged. P4 and P4b are unmerged development branches; merging into the default branch requires Robinson's authorization.",
   "historical_version": null,
   "historical_code_recovered": false,
   "code_origin": "new_authorized_provisional",
   "compatibility_with_historical_fields": "not_verified",
-  "phase": "P4_PERSISTENCE_AND_RECOVERY",
+  "phase": "P4b_LOCAL_HTTP_ADAPTER",
   "status": "tested_provisional",
   "completed_packages": [
     "P0",
     "P1",
     "P2",
     "P3",
-    "P4"
+    "P4",
+    "P4b"
   ],
   "implemented": [
     "ClinicalCase",
@@ -42,64 +43,54 @@
     "PersistentStateManager",
     "interrupted-run recovery (INTERRUPTED, no agent re-execution)",
     "CLI --store / --recover",
-    "10 JSON schemas"
+    "10 domain JSON schemas",
+    "HTTP API medrixa.http.v1 (FastAPI, local only, 5 endpoints)",
+    "OpenAPI contract contracts/http/openapi.v1.json",
+    "Authenticator port + HmacTokenAuthenticator (provisional)",
+    "role x case authorization, default deny, 404 on cross-case reads",
+    "idempotency via deterministic run_id (durable across restarts)",
+    "uniform error catalogue with request id",
+    "access audit (fails closed)",
+    "python -m app.web issue-token / serve (127.0.0.1 only)"
   ],
   "not_implemented": [
-    "PostgreSQL adapter (intended target)",
-    "FastAPI adapter"
+    "PostgreSQL adapter (intended target; P5 proposed)",
+    "OIDC/IdP authentication",
+    "run leases (P6 proposed)",
+    "rate limiting, TLS, CORS",
+    "deployment (not authorized)"
   ],
   "contract_changes": [
     "P4: StopCode gained INTERRUPTED (additive; P3 documents remain valid)",
-    "P4: new schemas RecoveryReport, RecoverySummary"
+    "P4: new schemas RecoveryReport, RecoverySummary",
+    "P4b: new HTTP contract medrixa.http.v1 (separate from domain schema_version)",
+    "P4b: PersistentStateManager accepts optional run_id (additive)",
+    "P4b: parse_strict extracted from parse_case (behaviour unchanged)"
   ],
   "tests": {
     "command": "python -m unittest discover -s tests -t . -v",
-    "passed": 107,
+    "passed": 154,
     "failed": 0,
     "errors": 0,
     "skipped": 0,
-    "previous_tests_unmodified": 52,
-    "new_p4_tests": 55,
-    "evidence": "evidence/P4_regression.txt",
-    "focused_evidence": "evidence/P4_tests.txt",
+    "p0_p4_tests": 107,
+    "new_p4b_tests": 47,
+    "evidence": "evidence/P4b_regression.txt",
+    "focused_evidence": "evidence/P4b_tests.txt",
+    "previous_evidence": [
+      "evidence/P4_regression.txt",
+      "evidence/P3_regression.txt"
+    ],
+    "mutation_checks": "P4: 4/4 detected; P4b: 8/8 detected",
+    "static_analysis": "ruff 0.16.8 E,F,W,B,S clean on app/ and scripts/",
     "source_manifest": "evidence/SOURCE_MANIFEST.json"
   },
   "runtime": {
     "python": "3.13.16",
     "python_p1_p3": "3.12.14",
-    "dependencies": {
-      "pydantic": "2.13.5",
-      "pydantic_core": "2.46.5",
-      "annotated-types": "0.8.0",
-      "typing-extensions": "4.16.0",
-      "typing-inspection": "0.4.4"
-    }
+    "lock": "requirements-lock.txt",
+    "environment_evidence": "evidence/P4b_environment.json"
   },
-  "files_p4": [
-    "app/persistence/__init__.py",
-    "app/persistence/repository.py",
-    "app/persistence/memory.py",
-    "app/persistence/local_file.py",
-    "app/persistence/manager.py",
-    "app/persistence/recovery.py",
-    "app/core/state_manager.py",
-    "app/models/contracts.py",
-    "app/observability/summary.py",
-    "app/__main__.py",
-    "scripts/export_schemas.py",
-    "contracts/medrixa.prototype.v1/Plan.schema.json",
-    "contracts/medrixa.prototype.v1/RunSummary.schema.json",
-    "contracts/medrixa.prototype.v1/State.schema.json",
-    "contracts/medrixa.prototype.v1/RecoveryReport.schema.json",
-    "contracts/medrixa.prototype.v1/RecoverySummary.schema.json",
-    "tests/persistence/__init__.py",
-    "tests/persistence/support.py",
-    "tests/persistence/crash_worker.py",
-    "tests/persistence/test_repository_contract.py",
-    "tests/persistence/test_local_file.py",
-    "tests/persistence/test_recovery.py",
-    "tests/persistence/test_contract_compat.py"
-  ],
   "documentation": [
     "MASTER_SPEC.md",
     "CONTINUITY.json",
@@ -111,23 +102,25 @@
     "docs/PROVENANCE.md",
     "docs/API_CONTRACT.md",
     "docs/PERSISTENCE.md",
+    "docs/HTTP_API.md",
     "docs/RISKS.md",
     "docs/REQUIREMENTS_TRACEABILITY.md",
     "docs/NEXT_PACKAGE.md"
   ],
-  "next_task": "P4b: local FastAPI adapter over the persistent service (no deployment), after defining authN/authZ, idempotency and HTTP error mapping; decide PostgreSQL adapter ordering",
+  "next_task": "P5 (proposed): PostgreSQL StateRepository adapter passing the unchanged repository contract suite, tested on an ephemeral local PostgreSQL 16",
   "next_task_spec": "docs/NEXT_PACKAGE.md",
   "blocked_on_historical_files": false,
   "clinical_validation": "not_performed",
   "production_allowed": false,
   "real_patient_data_allowed": false,
   "pending": [
-    "merge authorization for dev/p4-persistence",
-    "PostgreSQL adapter",
-    "HTTP API",
-    "run lease/heartbeat",
-    "authentication/authorization",
-    "encryption at rest",
+    "merge authorization for dev/p4-persistence and dev/p4b-http",
+    "PostgreSQL adapter (P5)",
+    "run lease/heartbeat (P6)",
+    "OIDC/IdP, key rotation/revocation, encryption at rest, rate limiting (P7)",
+    "metrics/tracing, audit retention (P8)",
+    "integration/deployment readiness without production (P9)",
+    "background execution instead of in-request runs",
     "FHIR adapter",
     "clinical knowledge engine",
     "LLM/ML/RAG",
@@ -141,7 +134,46 @@
     "recovery must run without live executors (no lease)",
     "Windows file locking untested",
     "no clinical inference",
-    "no historical compatibility proof"
+    "no historical compatibility proof",
+    "HMAC tokens: shared secret, no revocation/rotation",
+    "runs execute inside the HTTP request; file I/O blocks the event loop",
+    "RUNS_ACTIVE guard is per process only",
+    "third-party DeprecationWarning: anyio.abc.BlockingPortal alias via Starlette TestClient (tests only)"
   ],
-  "resume_rule": "Read this file, TEST_STATUS and NEXT_PACKAGE; verify source manifest. Do not repeat historical audits or complete tests unless code changes or concrete risk requires it."
+  "resume_rule": "Read this file, TEST_STATUS and NEXT_PACKAGE; verify source manifest. Do not repeat historical audits or complete tests unless code changes or concrete risk requires it.",
+  "branch_lineage": [
+    "provisional/2026-10-15 @ 8ee8cdc4cf4a0da14ea9f0d3cb8b467531ce9246 (P0-P3, default branch)",
+    "dev/p4-persistence @ 97592da9fc15b7e83a7572739b5e91bccec020ac (P4)",
+    "dev/p4b-http (P4b, this branch)"
+  ],
+  "authorization": "Desarrollo autónomo supervisado, Robinson, 2026-10-15 21:39 Bogotá (MASTER_SPEC.md R14-R18)",
+  "files_p4b": [
+    "app/web/__init__.py",
+    "app/web/__main__.py",
+    "app/web/settings.py",
+    "app/web/auth.py",
+    "app/web/policy.py",
+    "app/web/audit.py",
+    "app/web/contracts.py",
+    "app/web/errors.py",
+    "app/web/service.py",
+    "app/web/app.py",
+    "app/api/contracts.py",
+    "app/persistence/manager.py",
+    "scripts/export_openapi.py",
+    "contracts/http/openapi.v1.json",
+    "requirements.txt",
+    "requirements-dev.txt",
+    "requirements-lock.txt",
+    "tests/web/__init__.py",
+    "tests/web/support.py",
+    "tests/web/test_auth_unit.py",
+    "tests/web/test_http_contract.py",
+    "tests/web/test_authorization.py",
+    "tests/web/test_idempotency.py",
+    "tests/web/test_adverse.py"
+  ],
+  "external_blocks": [
+    "merges, deployment, real data, managed infrastructure and clinical validation require human authorization"
+  ]
 }

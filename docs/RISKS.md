@@ -1,4 +1,4 @@
-# Riesgos y límites al cierre de P4
+# Riesgos y límites al cierre de P4b
 
 | Riesgo | Control actual | Pendiente |
 |---|---|---|
@@ -13,7 +13,12 @@
 | Registro corrupto | Se detecta, se informa y nunca se modifica, repara ni borra | Procedimiento operativo de cuarentena/restauración desde respaldo |
 | Datos en reposo | Permisos 0600/0700 en POSIX | Sin cifrado en reposo, retención ni borrado seguro |
 | Información en logs | Eventos de códigos/IDs; resúmenes de ejecución y recuperación sin payload ni IDs; errores públicos uniformes | IDs suministrados también deben ser sintéticos; no hay filtro universal de información personal |
-| Exposición de servicio | No existe servidor ni conexiones externas en la app | AuthN/AuthZ, cifrado, secretos y revisión productiva antes de desplegar |
+| Exposición de servicio | P4b: servidor solo en 127.0.0.1, lista de hosts, sin perfil productivo, `/docs` solo en desarrollo | TLS, limitación de tasa, CORS y revisión productiva antes de cualquier despliegue (no autorizado) |
+| Identidad débil | Puerto `Authenticator`; token HMAC con expiración, audiencia y claims estrictos; secreto ≥32 bytes obligatorio | Secreto compartido sin revocación ni rotación; un token robado sirve hasta expirar (≤8 h). OIDC/IdP en P7 |
+| Acceso cruzado entre casos | Autorización por caso con denegación por defecto; 404 indistinguible; probado con 8 defectos deliberados | Revisión de seguridad externa; alcance por caso viaja en el token |
+| Duplicación por reintentos | Idempotencia por `run_id` determinista + creación atómica; probado con concurrencia real y reinicio | Cuerpos de error no se reproducen (solo las ejecuciones terminadas) |
+| Pérdida de auditoría | Auditoría previa a efectos; sink y logger sin configurar fallan cerrados | Sin almacén append-only ni retención; el destino depende de la configuración de logging |
+| Bloqueo del servidor | Ejecuciones sintéticas cortas | Ejecución dentro de la petición y E/S de archivo bloqueante en el bucle de eventos: requiere ejecutor en segundo plano o adaptador asíncrono antes de carga real |
 | Cambios de dependencias | Versiones registradas; P4 no añade dependencias | No se hizo auditoría de vulnerabilidades ni prueba de instalación en Windows |
 
 La validación estructural de un snapshot detecta inconsistencias, no prueba que su autor sea confiable. Código Python dentro del mismo proceso puede eludir mecanismos de inmutabilidad; solo se admiten agentes locales de confianza.

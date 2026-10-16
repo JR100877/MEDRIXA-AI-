@@ -15,5 +15,10 @@
 | R11 persistencia con control de revisiones | persistence/repository.py; memory.py; local_file.py; manager.py | RepositoryContract ×2 adaptadores: CAS, una transición, reescritura, caso cruzado, duplicado, concurrencia (hilos y procesos), atomicidad ante fallo de escritura; LocalFileTests de corrupción |
 | R12 recuperación segura | persistence/recovery.py; CLI `--recover` | RecoveryPolicyTests; ProcessRestartTests con SIGKILL real; 0 agentes reejecutados; resultado tardío rechazado |
 | R13 contratos conservados | gancho `_publish`; `StopCode` aditivo | 52 pruebas previas sin modificar; ContractCompatibilityTests |
+| R14 API REST versionada y documentada | web/contracts.py; web/app.py; contracts/http/openapi.v1.json | HttpContractTests (formas, límites, OpenAPI publicado = generado) |
+| R15 autenticación y autorización por caso | web/auth.py; web/policy.py; web/service.py | TokenTests; PolicyTests; AuthorizationTests; mutaciones M1–M3, M7 |
+| R16 idempotencia | web/service.py (`derive_run_id`); manager `run_id` | IdempotencySyncTests; IdempotencyConcurrencyTests; mutaciones M4–M5 |
+| R17 errores seguros y trazables | web/errors.py; manejadores en web/app.py | Aserciones de sobre y ausencia de eco en todas las suites web; mutación M8 |
+| R18 seguridad por defecto y auditoría | web/settings.py; web/audit.py; `serve` en 127.0.0.1 | SettingsTests; AdverseTests; prueba con servidor real (evidencia en TEST_STATUS) |
 
 Se distingue evidencia automatizada de inspección: independencia y ausencia de servicios externos se constatan en las fuentes, no mediante una certificación de seguridad.

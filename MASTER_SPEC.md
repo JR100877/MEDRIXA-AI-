@@ -21,6 +21,16 @@ Fuente rectora: autorización de dirección autónoma de ingeniería de Robinson
 - R12: recuperación segura de ejecuciones interrumpidas, sin reintento automático de agentes y con revisión humana.
 - R13: conservar contratos y pruebas existentes; rama de desarrollo separada; sin fusión a la rama principal sin nueva autorización.
 
+## Requisitos P4b (autorización de desarrollo autónomo supervisado de Robinson, 15/10/2026, 21:39)
+
+- R14: API REST con contratos HTTP versionados, validación estricta, serialización controlada, respuestas consistentes y OpenAPI.
+- R15: autenticación desacoplada con identidades verificables; autorización por caso, mínimo privilegio, denegación por defecto y protección contra accesos cruzados.
+- R16: claves de idempotencia, prevención de duplicados, gestión de conflictos y consistencia ante reintentos, con pruebas de concurrencia.
+- R17: mapeo explícito de excepciones, errores estructurados sin información interna y con identificador de solicitud.
+- R18: configuración segura por defecto, límites de entrada, separación de entornos y auditoría sin datos clínicos innecesarios.
+
+Sigue prohibido: fusionar a la rama predeterminada, reescribir commits publicados, hacer force push, usar datos reales, desplegar en producción, tomar decisiones clínicas autónomas, cambiar la visibilidad del repositorio y declarar validación clínica.
+
 ## Exclusiones del incremento
 
 Autenticación productiva, cifrado persistente, aislamiento de código no confiable, validación clínica, regulación, FHIR conforme, modelos LLM/ML y bases de conocimiento médicas. No se declararán implementados.

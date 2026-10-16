@@ -66,3 +66,21 @@ El Orchestrator no cambió: usa el gestor persistente igual que el gestor en mem
 | CORE | + puerto de repositorio, CAS, recuperación | Adaptador PostgreSQL; arrendamiento de ejecuciones |
 | Interface | CLI `--store`/`--recover`; 10 esquemas | HTTP FastAPI (P4b) y frontend |
 | Security | + historial solo extensible, checksum de corrupción, permisos de archivo | Firma, cifrado en reposo, AuthN/AuthZ |
+
+## Adaptador HTTP P4b
+
+```
+HTTP ─► FastAPI (app/web/app.py) ─► RunService (app/web/service.py) ─► PersistentStateManager ─► StateRepository
+          │ host allow-list, límites,      │ Authenticator (puerto) ─ HmacTokenAuthenticator [provisional]
+          │ errores uniformes, request id  │ policy.require (roles × caso, denegar por defecto)
+          │ cabeceras de seguridad         │ AuditSink (puerto) ─ Logging/Memory  [falla cerrada]
+          └ OpenAPI (solo development)     └ idempotencia: run_id = H(sujeto, clave) + create atómico
+```
+
+FastAPI solo traduce. Las reglas viven en `RunService`, que puede reutilizarse en otro transporte. El CORE (Orchestrator, Planner, Router y agentes) no cambió. Detalle en `docs/HTTP_API.md`.
+
+| Área | Tras P4b | Pendiente |
+|---|---|---|
+| Interface | API HTTP local v1 con 5 endpoints, OpenAPI y CLI de servidor local | Frontend; ejecución en segundo plano |
+| Security | AuthN por puerto, AuthZ por rol y caso, auditoría de accesos, límites, cabeceras y configuración segura | OIDC/IdP, rotación y revocación, limitación de tasa, TLS (P7) |
+| Observability | Auditoría de accesos en líneas JSON con `request_id` | Métricas y trazas (P8) |
