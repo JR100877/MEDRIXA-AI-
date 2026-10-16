@@ -48,8 +48,10 @@ def main(argv=None) -> int:
         print('{"error":"UVICORN_NOT_INSTALLED"}', file=sys.stderr)
         return 2
     from app.web.app import create_app
+    from app.observability.context import configure_operational_logging
     from app.web.audit import configure_audit_logging
     configure_audit_logging()  # without it every audited operation fails closed
+    configure_operational_logging()  # P8.3: JSON lines with request_id on stderr
     uvicorn.run(create_app(settings), host="127.0.0.1", port=args.port, server_header=False,
                 proxy_headers=False, access_log=False)
     return 0

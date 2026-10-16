@@ -22,6 +22,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from app.api.contracts import InputRejected, parse_strict
 from app.persistence.memory import InMemoryStateRepository
 from app.persistence.repository import StateRepository
+from app.observability.context import request_id_var
 from app.observability.metrics import InMemoryMetrics
 from app.security.ratelimit import RateLimiter, TokenBucketLimiter
 from app.web.policy import Forbidden, OutOfScope, require
@@ -143,34 +144,38 @@ def create_app(settings: Settings, repository: StateRepository | None = None,
         started = time.perf_counter()
         supplied = request.headers.get("x-request-id", "")
         request.state.request_id = supplied if _REQUEST_ID.match(supplied) else uuid.uuid4().hex
-        host = (request.headers.get("host") or "").rsplit(":", 1)[0].strip("[]")
-        retry = None
-        if host in allowed_hosts:
-            # Before authentication: also bounds credential guessing per client address.
-            retry = ip_limiter.check(request.client.host if request.client else "unknown")
-        if host not in allowed_hosts:
-            response = error_response(request, "INVALID_INPUT")
-        elif retry is not None:
-            registry.increment("medrixa_rate_limited_total", {"scope": "address"})
-            response = error_response(request, "RATE_LIMITED", int(retry))
-        else:
-            try:
-                response = await call_next(request)
-            except Exception:  # last resort: never leak a stack trace or message
-                response = error_response(request, "INTERNAL_ERROR")
-        for name, value in _SECURITY_HEADERS.items():
-            response.headers.setdefault(name, value)
-        if request.url.path not in _DOC_PATHS:
-            response.headers["Content-Security-Policy"] = _API_CSP
-        response.headers["X-Request-ID"] = request.state.request_id
-        # P8: bounded labels only (route template, never the raw path or identifiers).
-        route = getattr(request.scope.get("route"), "path", None) or "unrouted"
-        method = request.method if request.method in _METHODS else "OTHER"
-        registry.increment("medrixa_http_requests_total",
-                           {"method": method, "route": route, "status": str(response.status_code)})
-        registry.observe("medrixa_http_request_duration_seconds", time.perf_counter() - started,
-                         {"method": method, "route": route})
-        return response
+        context_token = request_id_var.set(request.state.request_id)  # P8.3: log correlation
+        try:
+            host = (request.headers.get("host") or "").rsplit(":", 1)[0].strip("[]")
+            retry = None
+            if host in allowed_hosts:
+                # Before authentication: also bounds credential guessing per client address.
+                retry = ip_limiter.check(request.client.host if request.client else "unknown")
+            if host not in allowed_hosts:
+                response = error_response(request, "INVALID_INPUT")
+            elif retry is not None:
+                registry.increment("medrixa_rate_limited_total", {"scope": "address"})
+                response = error_response(request, "RATE_LIMITED", int(retry))
+            else:
+                try:
+                    response = await call_next(request)
+                except Exception:  # last resort: never leak a stack trace or message
+                    response = error_response(request, "INTERNAL_ERROR")
+            for name, value in _SECURITY_HEADERS.items():
+                response.headers.setdefault(name, value)
+            if request.url.path not in _DOC_PATHS:
+                response.headers["Content-Security-Policy"] = _API_CSP
+            response.headers["X-Request-ID"] = request.state.request_id
+            # P8: bounded labels only (route template, never the raw path or identifiers).
+            route = getattr(request.scope.get("route"), "path", None) or "unrouted"
+            method = request.method if request.method in _METHODS else "OTHER"
+            registry.increment("medrixa_http_requests_total",
+                               {"method": method, "route": route, "status": str(response.status_code)})
+            registry.observe("medrixa_http_request_duration_seconds", time.perf_counter() - started,
+                             {"method": method, "route": route})
+            return response
+        finally:
+            request_id_var.reset(context_token)
 
     @app.exception_handler(ApiError)
     async def api_error(request: Request, exc: ApiError):
