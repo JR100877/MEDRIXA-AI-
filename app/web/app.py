@@ -69,8 +69,16 @@ def create_app(settings: Settings, repository: StateRepository | None = None,
     if leases is None:
         from app.persistence.leases import InMemoryRunLeases
         leases = InMemoryRunLeases()  # same-process liveness only
-    authenticator = authenticator or HmacTokenAuthenticator(
-        settings.auth_secret.get_secret_value(), settings.token_max_ttl_seconds, settings.clock_skew_seconds)
+    if authenticator is None:
+        if settings.auth_mode == "oidc" and settings.oidc is not None:
+            from app.web.oidc import OidcJwtAuthenticator
+            authenticator = OidcJwtAuthenticator(settings.oidc)
+        elif settings.auth_secret is not None:
+            authenticator = HmacTokenAuthenticator(settings.auth_secret.get_secret_value(),
+                                                   settings.token_max_ttl_seconds, settings.clock_skew_seconds)
+        else:  # unreachable: Settings validation guarantees one mode is configured
+            raise ValueError("no authentication configured")
+    active_authenticator: Authenticator = authenticator
     service_args = {"runner_factory": runner_factory} if runner_factory else {}
     service = RunService(repository, audit or LoggingAuditSink(), leases=leases,
                          lease_ttl_seconds=settings.lease_ttl_seconds, **service_args)
@@ -123,9 +131,10 @@ def create_app(settings: Settings, repository: StateRepository | None = None,
     async def http_error(request: Request, exc: StarletteHTTPException):
         return error_response(request, _STATUS_CODES.get(exc.status_code, "INVALID_INPUT"))
 
-    def authenticate(request: Request) -> Principal:
+    async def authenticate(request: Request) -> Principal:
         try:
-            return authenticator.authenticate(request.headers.get("authorization"))
+            # In a worker thread: OIDC key refresh performs bounded network I/O.
+            return await run_in_threadpool(active_authenticator.authenticate, request.headers.get("authorization"))
         except AuthenticationFailed:
             service.audit_auth_failure(request.state.request_id)
             raise ApiError("UNAUTHENTICATED") from None
@@ -161,7 +170,7 @@ def create_app(settings: Settings, repository: StateRepository | None = None,
                   "requestBody": {"required": True, "content": {"application/json": {
                       "schema": {"$ref": "#/components/schemas/CreateRunRequest"}}}}})
     async def create_run(request: Request) -> JSONResponse:
-        principal = authenticate(request)
+        principal = await authenticate(request)
         idempotency_key = request.headers.get("idempotency-key", "")
         if not IDEMPOTENCY_KEY.match(idempotency_key):
             raise ApiError("IDEMPOTENCY_KEY_REQUIRED")
@@ -179,20 +188,20 @@ def create_app(settings: Settings, repository: StateRepository | None = None,
     @app.get("/v1/runs/{run_id}", response_model=RunView, tags=["runs"],
              responses=_errors(401, 403, 404, 500, 503), openapi_extra=bearer)
     async def get_run(request: Request, run_id: run_id_param) -> JSONResponse:
-        principal = authenticate(request)
+        principal = await authenticate(request)
         return _json(await run_in_threadpool(service.get_run, principal, run_id, request.state.request_id))
 
     @app.get("/v1/runs/{run_id}/events", response_model=RunEventsView, tags=["runs"],
              responses=_errors(401, 403, 404, 500, 503), openapi_extra=bearer)
     async def get_events(request: Request, run_id: run_id_param) -> JSONResponse:
-        principal = authenticate(request)
+        principal = await authenticate(request)
         return _json(await run_in_threadpool(service.get_events, principal, run_id, request.state.request_id))
 
     @app.post("/v1/admin/recovery", response_model=RecoveryView, tags=["operations"],
               summary="Move interrupted runs to human review (never re-executes agents)",
               responses=_errors(401, 403, 409, 500, 503), openapi_extra=bearer)
     async def recover(request: Request) -> JSONResponse:
-        principal = authenticate(request)
+        principal = await authenticate(request)
         view = await run_in_threadpool(service.recover, principal, request.state.request_id)
         return JSONResponse(view.public())
 
@@ -215,7 +224,8 @@ def create_app(settings: Settings, repository: StateRepository | None = None,
             components["schemas"].pop(name, None)
         components["securitySchemes"] = {"bearerAuth": {
             "type": "http", "scheme": "bearer",
-            "description": "Provisional local HMAC token (mdx1). Not an identity provider."}}
+            "description": "Bearer token: OIDC access token (JWT, MEDRIXA_AUTH_MODE=oidc) or the "
+                           "provisional local HMAC token (mdx1, development/test)."}}
         app.openapi_schema = jsonable_encoder(schema)
         return app.openapi_schema
 

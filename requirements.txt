@@ -1,3 +1,5 @@
 pydantic==2.13.5
 # P4b: local HTTP adapter
 fastapi==0.143.2
+# P7.2: OIDC access-token verification (JWT/JWKS); cryptography provides the algorithms
+pyjwt[crypto]==2.15.1

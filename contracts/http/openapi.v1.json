@@ -433,7 +433,7 @@
     },
     "securitySchemes": {
       "bearerAuth": {
-        "description": "Provisional local HMAC token (mdx1). Not an identity provider.",
+        "description": "Bearer token: OIDC access token (JWT, MEDRIXA_AUTH_MODE=oidc) or the provisional local HMAC token (mdx1, development/test).",
         "scheme": "bearer",
         "type": "http"
       }

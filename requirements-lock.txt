@@ -11,6 +11,10 @@ anyio==4.15.1
 idna==3.20
 annotated-doc==0.0.5
 opentelemetry-api==1.44.0
+pyjwt==2.15.1
+cryptography==50.0.1
+cffi==2.1.1
+pycparser==3.0
 # PostgreSQL closure of requirements-postgres.txt (P5):
 psycopg==3.3.6
 psycopg-binary==3.3.6
@@ -22,6 +26,7 @@ certifi==2026.7.22
 uvicorn==0.53.0
 click==8.5.0
 ruff==0.16.8
+mypy==2.4.0
 # Note: this environment also had httpx2==2.13.0 preinstalled; Starlette 1.6 TestClient
 # prefers httpx2 and falls back to httpx (with a deprecation warning). The 47 web tests
 # passed on both paths (httpx2 present; httpx2 hidden -> httpx 0.28.1).

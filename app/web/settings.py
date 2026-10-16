@@ -7,9 +7,17 @@ from typing import Annotated, Literal
 from pydantic import Field, SecretStr, field_validator, model_validator
 
 from app.models.contracts import Contract
+from app.web.oidc import OidcSettings
 from app.security.secrets import EnvironmentSecretProvider, SecretError, SecretProvider
 
 MIN_SECRET_BYTES = 32
+_OIDC_VARIABLES = {
+    "issuer": "MEDRIXA_OIDC_ISSUER", "audience": "MEDRIXA_OIDC_AUDIENCE", "jwks_url": "MEDRIXA_OIDC_JWKS_URL",
+    "organization_id": "MEDRIXA_ORGANIZATION_ID", "algorithms": "MEDRIXA_OIDC_ALGORITHMS",
+    "roles_claim": "MEDRIXA_OIDC_ROLES_CLAIM", "cases_claim": "MEDRIXA_OIDC_CASES_CLAIM",
+    "organization_claim": "MEDRIXA_OIDC_ORGANIZATION_CLAIM", "leeway_seconds": "MEDRIXA_OIDC_LEEWAY_SECONDS",
+    "jwks_cache_seconds": "MEDRIXA_OIDC_JWKS_CACHE_SECONDS",
+}
 
 
 class ConfigurationError(RuntimeError):
@@ -18,7 +26,9 @@ class ConfigurationError(RuntimeError):
 
 class Settings(Contract):
     environment: Literal["development", "test"]
-    auth_secret: SecretStr
+    auth_mode: Literal["hmac", "oidc"] = "hmac"  # P7.2
+    auth_secret: SecretStr | None = None  # required in hmac mode
+    oidc: OidcSettings | None = None  # required in oidc mode
     store_dir: Path | None = None
     postgres_dsn: SecretStr | None = None  # P5; treated as a secret (may hold credentials)
     max_body_bytes: Annotated[int, Field(ge=1024, le=1_048_576)] = 1_048_576
@@ -29,7 +39,9 @@ class Settings(Contract):
 
     @field_validator("auth_secret")
     @classmethod
-    def strong_secret(cls, value: SecretStr) -> SecretStr:
+    def strong_secret(cls, value: SecretStr | None) -> SecretStr | None:
+        if value is None:
+            return value
         raw = value.get_secret_value()
         if len(raw.encode("utf-8")) < MIN_SECRET_BYTES or len(set(raw)) < 8:
             raise ValueError("auth secret too short or low-entropy")
@@ -41,6 +53,16 @@ class Settings(Contract):
         if any(not h or "*" in h for h in hosts):
             raise ValueError("wildcard hosts are not allowed")
         return hosts
+
+    @model_validator(mode="after")
+    def auth_configured(self) -> "Settings":
+        if self.auth_mode == "hmac" and self.auth_secret is None:
+            raise ValueError("hmac mode requires MEDRIXA_AUTH_SECRET")
+        if self.auth_mode == "oidc" and self.oidc is None:
+            raise ValueError("oidc mode requires the MEDRIXA_OIDC_* settings")
+        if self.auth_mode == "oidc" and self.auth_secret is not None:
+            raise ValueError("MEDRIXA_AUTH_SECRET must not be set in oidc mode")
+        return self
 
     @model_validator(mode="after")
     def single_store(self) -> "Settings":
@@ -66,7 +88,19 @@ def settings_from_env(environ: Mapping[str, str] | None = None, secrets: SecretP
         postgres_dsn = secrets.get("PG_DSN")
     except SecretError as error:
         raise ConfigurationError(str(error)) from None  # names the variable, never the value
-    data: dict[str, object] = {"environment": name, "auth_secret": auth_secret or ""}
+    mode = env.get("MEDRIXA_AUTH_MODE", "hmac")
+    data: dict[str, object] = {"environment": name, "auth_mode": mode}
+    if auth_secret is not None or mode == "hmac":
+        data["auth_secret"] = auth_secret or ""
+    if mode == "oidc":
+        oidc: dict[str, object] = {}
+        for field, variable in _OIDC_VARIABLES.items():
+            if env.get(variable):
+                value: object = env[variable]
+                if field == "algorithms":
+                    value = tuple(a.strip() for a in str(value).split(","))
+                oidc[field] = value
+        data["oidc"] = oidc
     if env.get("MEDRIXA_STORE_DIR"):
         data["store_dir"] = Path(env["MEDRIXA_STORE_DIR"])
     if env.get("MEDRIXA_LEASE_TTL_SECONDS"):
@@ -81,4 +115,4 @@ def settings_from_env(environ: Mapping[str, str] | None = None, secrets: SecretP
         # Field names only; never echo values (the secret could be among them).
         raise ConfigurationError("invalid MEDRIXA configuration (MEDRIXA_ENV, MEDRIXA_AUTH_SECRET[_FILE], "
                                  "MEDRIXA_STORE_DIR, MEDRIXA_PG_DSN[_FILE], MEDRIXA_LEASE_TTL_SECONDS, "
-                                 "MEDRIXA_ALLOWED_HOSTS)") from None
+                                 "MEDRIXA_ALLOWED_HOSTS, MEDRIXA_AUTH_MODE, MEDRIXA_OIDC_*)") from None

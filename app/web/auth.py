@@ -38,6 +38,7 @@ class Principal(Contract):
     subject: Identifier
     roles: Annotated[frozenset[Role], Field(min_length=1, max_length=3)]
     cases: Annotated[frozenset[Identifier], Field(max_length=100)] = frozenset()
+    organization: Identifier | None = None  # P7.2: set by OIDC; None for local HMAC tokens
 
 
 class TokenClaims(Contract):

@@ -30,6 +30,9 @@ def main(argv=None) -> int:
         print(f'{{"error":"CONFIGURATION","detail":"{error}"}}', file=sys.stderr)
         return 2
     if args.command == "issue-token":
+        if settings.auth_secret is None:  # oidc mode: tokens come from the identity provider
+            print('{"error":"ISSUE_TOKEN_REQUIRES_HMAC_MODE"}', file=sys.stderr)
+            return 2
         if not 60 <= args.ttl <= settings.token_max_ttl_seconds:
             print('{"error":"INVALID_TTL"}', file=sys.stderr)
             return 2

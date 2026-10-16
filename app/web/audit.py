@@ -24,6 +24,7 @@ class AccessAuditEvent(Contract):
     phase: Literal["attempt", "outcome"]
     outcome: str
     subject: Identifier | None = None
+    organization: Identifier | None = None  # P7.2
     case_id: Identifier | None = None
     run_id: Identifier | None = None
     status_code: int | None = None

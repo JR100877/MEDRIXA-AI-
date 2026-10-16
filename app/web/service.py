@@ -75,7 +75,7 @@ class RunService:
     # -- operations --------------------------------------------------------------
     async def create_run(self, principal: Principal, case: ClinicalCase, idempotency_key: str,
                          request_id: str) -> tuple[RunView, bool]:
-        base = dict(request_id=request_id, action="runs.create", subject=principal.subject, case_id=case.case_id)
+        base = dict(request_id=request_id, action="runs.create", subject=principal.subject, organization=principal.organization, case_id=case.case_id)
         try:
             require(principal, "runs:create", case.case_id)
         except (Forbidden, OutOfScope):
@@ -134,7 +134,7 @@ class RunService:
         return RunView.of(final), False
 
     def _authorized_state(self, principal: Principal, run_id: str, request_id: str, action: str) -> State:
-        base = dict(request_id=request_id, action=action, subject=principal.subject)
+        base = dict(request_id=request_id, action=action, subject=principal.subject, organization=principal.organization)
         if "runs:read" not in permissions_of(principal):
             # Checked before loading: a caller without the permission learns nothing about runs.
             self._record(**base, phase="outcome", outcome="FORBIDDEN", status_code=403)
@@ -161,7 +161,7 @@ class RunService:
         return RunEventsView.of(self._authorized_state(principal, run_id, request_id, "runs.read_events"))
 
     def recover(self, principal: Principal, request_id: str) -> RecoveryView:
-        base = dict(request_id=request_id, action="runs.recover", subject=principal.subject)
+        base = dict(request_id=request_id, action="runs.recover", subject=principal.subject, organization=principal.organization)
         try:
             require(principal, "runs:recover")
         except (Forbidden, OutOfScope):
