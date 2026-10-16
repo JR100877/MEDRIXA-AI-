@@ -1,11 +1,13 @@
 """Secure-by-default configuration. Missing or weak settings stop start-up."""
 import os
+from collections.abc import Mapping
 from pathlib import Path
 from typing import Annotated, Literal
 
 from pydantic import Field, SecretStr, field_validator, model_validator
 
 from app.models.contracts import Contract
+from app.security.secrets import EnvironmentSecretProvider, SecretError, SecretProvider
 
 MIN_SECRET_BYTES = 32
 
@@ -51,24 +53,32 @@ class Settings(Contract):
         return self.environment == "development"
 
 
-def settings_from_env(environ: dict | None = None) -> Settings:
+def settings_from_env(environ: Mapping[str, str] | None = None, secrets: SecretProvider | None = None) -> Settings:
+    """Non-secret values from ``MEDRIXA_*`` variables; secrets through ``secrets``
+    (default: ``MEDRIXA_<NAME>`` or ``MEDRIXA_<NAME>_FILE``, see app/security/secrets.py)."""
     env = os.environ if environ is None else environ
+    secrets = secrets or EnvironmentSecretProvider(env)
     name = env.get("MEDRIXA_ENV", "")
     if name == "production":
         raise ConfigurationError("production profile is not authorized for MEDRIXA")
-    data = {"environment": name, "auth_secret": env.get("MEDRIXA_AUTH_SECRET", "")}
+    try:
+        auth_secret = secrets.get("AUTH_SECRET")
+        postgres_dsn = secrets.get("PG_DSN")
+    except SecretError as error:
+        raise ConfigurationError(str(error)) from None  # names the variable, never the value
+    data: dict[str, object] = {"environment": name, "auth_secret": auth_secret or ""}
     if env.get("MEDRIXA_STORE_DIR"):
         data["store_dir"] = Path(env["MEDRIXA_STORE_DIR"])
     if env.get("MEDRIXA_LEASE_TTL_SECONDS"):
         data["lease_ttl_seconds"] = env["MEDRIXA_LEASE_TTL_SECONDS"]
-    if env.get("MEDRIXA_PG_DSN"):
-        data["postgres_dsn"] = env["MEDRIXA_PG_DSN"]
+    if postgres_dsn is not None:
+        data["postgres_dsn"] = postgres_dsn
     if env.get("MEDRIXA_ALLOWED_HOSTS"):
         data["allowed_hosts"] = tuple(h.strip() for h in env["MEDRIXA_ALLOWED_HOSTS"].split(","))
     try:
         return Settings.model_validate(data, strict=False)
     except ValueError:
         # Field names only; never echo values (the secret could be among them).
-        raise ConfigurationError("invalid MEDRIXA configuration (MEDRIXA_ENV, MEDRIXA_AUTH_SECRET, "
-                                 "MEDRIXA_STORE_DIR, MEDRIXA_PG_DSN, MEDRIXA_LEASE_TTL_SECONDS, "
+        raise ConfigurationError("invalid MEDRIXA configuration (MEDRIXA_ENV, MEDRIXA_AUTH_SECRET[_FILE], "
+                                 "MEDRIXA_STORE_DIR, MEDRIXA_PG_DSN[_FILE], MEDRIXA_LEASE_TTL_SECONDS, "
                                  "MEDRIXA_ALLOWED_HOSTS)") from None
