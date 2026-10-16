@@ -52,9 +52,11 @@ class TokenTests(unittest.TestCase):
     def test_signature_and_format_failures_are_uniform(self):
         good = issue_token(SECRET, "user-1", ["case_runner"], ["case-a"], now=self.now)
         prefix, body, signature = good.split(".")
+        # Always different from the real signature (a fixed suffix could coincide, ~1/1024).
+        tampered = signature[:10] + ("B" if signature[10] == "A" else "A") + signature[11:]
         elevated = b64(json.dumps(valid_claims(self.now, roles=["operator"])).encode())
         headers = [None, "", good, f"Basic {good}", f"bearer {good}", f"Bearer {good} extra",
-                   f"Bearer {prefix}.{body}.{signature[:-2]}AA", f"Bearer {prefix}.{elevated}.{signature}",
+                   f"Bearer {prefix}.{body}.{tampered}", f"Bearer {prefix}.{elevated}.{signature}",
                    f"Bearer mdx0.{body}.{signature}", f"Bearer {body}.{signature}",
                    f"Bearer {issue_token('another-secret-' + 'x' * 40, 'user-1', ['case_runner'], now=self.now)}",
                    f"Bearer mdx1.!!!.{signature}", "Bearer " + "A" * 5000]

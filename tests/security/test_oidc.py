@@ -98,7 +98,7 @@ class ValidationTests(OidcTestCase):
         hs_confusion = f"{hs_head}.{body}.{b64(hmac.new(pem, signing_input, hashlib.sha256).digest())}"
         tokens = {
             "tampered_payload": f"{head}.{forged_body}.{sig}",
-            "tampered_signature": f"{head}.{body}.{sig[:-4]}AAAA",
+            "tampered_signature": f"{head}.{body}.{sig[:10]}{'B' if sig[10] == 'A' else 'A'}{sig[11:]}",
             "alg_none": none_token,
             "hs256_with_public_key": hs_confusion,
             "alg_not_allowed": self.rsa.sign(alg="RS384"),
