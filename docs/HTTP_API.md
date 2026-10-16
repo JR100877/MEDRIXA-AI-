@@ -1,6 +1,6 @@
 # API HTTP local `medrixa.http.v1` (P4b)
 
-Estado: **adaptador FastAPI local implementado y probado**, solo con datos sintéticos. No hay despliegue ni perfil productivo. La autenticación productiva (OIDC o un proveedor de identidad) **no está implementada**. Contrato publicado: `contracts/http/openapi.v1.json`, que se regenera con `python -m scripts.export_openapi`.
+Estado: **adaptador FastAPI local implementado y probado**, solo con datos sintéticos. No hay despliegue ni perfil productivo. Desde P7, la autenticación OIDC/JWT está implementada y probada contra un JWKS local real; **falta la integración con un proveedor de identidad real** (BLOQUEADO, ver `docs/SECURITY.md`). Contrato publicado: `contracts/http/openapi.v1.json`, que se regenera con `python -m scripts.export_openapi`.
 
 ## Endpoints
 
@@ -20,7 +20,19 @@ Las respuestas nunca incluyen observaciones ni hallazgos. Todo resultado lleva `
 - **El adaptador provisional `HmacTokenAuthenticator`** usa tokens `mdx1.<claims>.<HMAC-SHA256>`. Verifica la firma en tiempo constante, el emisor, la audiencia, la expiración, la vida máxima (8 h; 1 h por defecto), la tolerancia de reloj (30 s), los roles conocidos y los claims estrictos.
 - **Respuesta uniforme a los fallos:** cualquier fallo da 401 `UNAUTHENTICATED` con `WWW-Authenticate: Bearer`, sin indicar qué comprobación falló.
 - **Límites:** es un secreto compartido. No hay revocación, rotación de claves ni proveedor de identidad. Es solo para desarrollo y pruebas.
-- **Tokens locales:** se emiten con `python -m app.web issue-token --sub ... --role ... --case ...`, usando `MEDRIXA_AUTH_SECRET`.
+- **Tokens locales:** se emiten con `python -m app.web issue-token --sub ... --role ... --case ...`, usando `MEDRIXA_AUTH_SECRET`. Se rechaza en modo OIDC.
+
+### OIDC/JWT (P7.2, `MEDRIXA_AUTH_MODE=oidc`)
+
+- **Adaptador `OidcJwtAuthenticator` (`app/web/oidc.py`):** la verificación la hace PyJWT 2.15.1 con cryptography. Se aceptan solo algoritmos asimétricos de la lista `MEDRIXA_OIDC_ALGORITHMS` (por defecto RS256 y ES256), así que `none` y HMAC son imposibles.
+- **Cabecera:** `kid` es obligatorio, y si la JWK declara `alg` debe coincidir con el del token. Las cabeceras `crit` se rechazan.
+- **Claims obligatorios:** `iss` exacto (`MEDRIXA_OIDC_ISSUER`), `aud` (`MEDRIXA_OIDC_AUDIENCE`), `exp`, `iat` y `sub`. Se respeta `nbf`, con tolerancia ≤120 s (30 s por defecto) y vida máxima de 1 h por defecto.
+- **Organización:** el claim `MEDRIXA_OIDC_ORGANIZATION_CLAIM` (`medrixa_org`) debe ser igual a `MEDRIXA_ORGANIZATION_ID`; si no, 401. MEDRIXA funciona con **una sola organización**.
+- **Roles:** vienen de `MEDRIXA_OIDC_ROLES_CLAIM` (`medrixa_roles`; admite rutas como `realm_access.roles`). Los desconocidos se ignoran, y sin ningún rol conocido la respuesta es 401.
+- **Casos:** vienen de `MEDRIXA_OIDC_CASES_CLAIM` (`medrixa_cases`), validados de forma estricta.
+- **Sujeto:** si `sub` no es un identificador válido (por ejemplo `auth0|…`), se usa `sub-<sha256(iss, sub)>`, estable y opaco.
+- **JWKS:** se obtiene de `MEDRIXA_OIDC_JWKS_URL`, solo por HTTPS (HTTP solo en loopback, para infraestructura de prueba), sin redirecciones, con ≤256 KiB y 5 s de tiempo máximo. Se guarda en caché 300 s, un `kid` desconocido provoca como mucho una descarga cada 30 s, y si el IdP cae se toleran las claves en caché hasta 1 h más.
+- **Fuera del bucle de eventos:** la autenticación se ejecuta en un hilo de trabajo.
 
 ## Autorización (`app/web/policy.py`)
 
@@ -64,6 +76,7 @@ Todos los errores usan el mismo sobre: `{"api_version":"medrixa.http.v1","error"
 | NOT_FOUND | 404 | IDEMPOTENCY_KEY_REUSED | 422 |
 | METHOD_NOT_ALLOWED | 405 | INTERNAL_ERROR / STORE_INTEGRITY_ERROR | 500 |
 | CONFLICT | 409 | STORE_UNAVAILABLE / AUDIT_UNAVAILABLE | 503 |
+| RATE_LIMITED (P7.3, con `Retry-After`) | 429 | CAPACITY_EXCEEDED (P7.3, con `Retry-After`) | 503 |
 
 ## Seguridad por defecto
 
@@ -86,3 +99,10 @@ Todos los errores usan el mismo sobre: `{"api_version":"medrixa.http.v1","error"
 - La ejecución corre dentro de la petición, y la E/S del adaptador de archivos es bloqueante en el bucle de eventos. Es aceptable en local, pero hace falta un ejecutor en segundo plano o un adaptador asíncrono antes de soportar carga.
 - `RUNS_ACTIVE` protege la recuperación frente a ejecuciones del **mismo proceso**. **Desde P6**, cada creación se ejecuta bajo un arrendamiento con latido, y `POST /v1/admin/recovery` omite las ejecuciones con arrendamiento vivo de otros procesos: las informa en `active_elsewhere`, un campo presente solo si es mayor que 0. Si un ejecutor pierde su arrendamiento a mitad de ejecución, la respuesta es 409 `CONFLICT` y la ejecución queda para revisión, sin reintento. El TTL se configura con `MEDRIXA_LEASE_TTL_SECONDS` (30 s por defecto, provisional).
 - No hay limitación de tasa, CORS ni TLS. El servidor es local; TLS correspondería al proxy en un despliegue, que no está autorizado.
+
+## Límites de tasa y de recursos (P7.3)
+
+- **Por dirección de cliente**, antes de autenticar: `MEDRIXA_RATE_LIMIT_IP_PER_MINUTE` (600 por defecto; ráfaga de 1/4). Frena la fuerza bruta de credenciales. Las peticiones limitadas no llegan al autenticador ni a la auditoría. Se usa la dirección del socket, sin confiar en `X-Forwarded-For`; detrás de un proxy, el límite por cliente corresponde al proxy.
+- **Por identidad** (organización + sujeto), después de autenticar: `MEDRIXA_RATE_LIMIT_SUBJECT_PER_MINUTE` (120).
+- **Ejecuciones simultáneas por proceso:** `MEDRIXA_MAX_ACTIVE_RUNS` (16). La plaza se reserva antes de crear la ejecución; si no hay plaza, la respuesta es 503 `CAPACITY_EXCEEDED` sin crear nada.
+- **Alcance:** los límites son por proceso, con memoria acotada (10 000 claves, LRU). Con varias réplicas, el límite debe aplicarse en el gateway o con un adaptador compartido (PROPUESTO).

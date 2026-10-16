@@ -123,3 +123,52 @@ Regresión justificada (P6 tocó la recuperación, el gestor persistente, la CLI
 **Verificación de las pruebas:** se introdujeron 6 defectos deliberados (la recuperación ignora arrendamientos, renovar uno vencido, adquirir sin comprobar vivacidad, sin guarda de escritura, sin latido, y PostgreSQL toma un arrendamiento vivo). La suite detectó los 6.
 
 **Análisis estático:** ruff con E, F, W, B y S queda limpio. Los dos S110 se resolvieron: uno con registro constante y otro con supresión explícita justificada.
+
+## P7 — endurecimiento de seguridad (rama `dev/p7-security`)
+
+Entorno: Python 3.13.16 y PostgreSQL 16.15 efímero local (`evidence/P7_environment.json`), con PyJWT 2.15.1, cryptography 50.0.1, psycopg-pool 3.3.3 y mypy 2.4.0.
+
+**Pruebas nuevas: 92.** Evidencia focalizada en `evidence/P7_tests.txt`.
+
+- **Secretos (10, 1 omitida como root).**
+  - Lectura y recorte del salto de línea final, y enlaces simbólicos al estilo Kubernetes.
+  - Rechazo de archivos escribibles por grupo u otros, vacíos, demasiado grandes, no UTF-8, inexistentes, directorios y enlaces colgantes, sin repetir el valor.
+  - Ambigüedad entre `X` y `X_FILE`, nombres restringidos, valores ocultos en `repr` e integración con la configuración.
+  - La prueba de archivo ilegible **se ejecutó aparte como usuario no privilegiado** y pasa.
+- **OIDC (15)**, contra un **servidor JWKS HTTP real en 127.0.0.1 con claves RSA y EC reales**:
+  - Tokens válidos RS256, PS256 y ES256.
+  - 22 fallos de claims, entre ellos emisor con prefijo engañoso, emitido en el futuro, vida excesiva, tiempos como `float`, otra organización, roles desconocidos y casos inválidos.
+  - Ataques de cabecera y algoritmo: carga y firma alteradas, `alg: none`, **confusión HS256 con la clave pública** (fabricada a mano, porque PyJWT se niega a generarla), algoritmo no permitido, `kid` desconocido o ausente, clave de atacante con el mismo `kid`, discrepancia entre tipo de clave y algoritmo, y `crit`.
+  - `alg` de la JWK fijado, sujeto `auth0|…` mapeado y roles anidados.
+  - **Rotación de claves:** publicar una nueva, retirar la anterior y caducar la caché.
+  - **200 `kid` aleatorios → 1 sola descarga por intervalo.**
+  - Caída del IdP con obsolescencia acotada y cierre seguro, y documentos JWKS inválidos (500, redirección, tamaño excesivo, no JSON, vacío).
+  - Política de URL y algoritmos, configuración por entorno, y flujo HTTP extremo a extremo con alcance por caso, otra organización y auditoría con organización.
+- **Límites (10):** recarga del token bucket con reloj controlado, memoria acotada, `Retry-After` exacto y concurrencia con 16 hilos sin exceder el presupuesto. En HTTP: 429 por IP antes de autenticar, sin llegar a la auditoría; 429 por identidad independiente entre sujetos; host rechazado sin consumir presupuesto; y capacidad agotada → 503 sin crear ejecución.
+- **Mínimo privilegio (29):**
+  - Las suites de contrato del repositorio (15) y de arrendamientos (6) pasan **sin cambios ejecutadas por el rol de aplicación**.
+  - La base de datos rechaza 12 operaciones fuera de la concesión: DELETE, TRUNCATE, UPDATE y DELETE de eventos, desactivar triggers, DROP, ALTER, escribir migraciones, CREATE TABLE, reemplazar la función del trigger y borrar arrendamientos.
+  - Un re-`GRANT` no tiene efecto (PostgreSQL solo advierte y no concede nada; se verifica el efecto).
+  - Las concesiones coinciden con una especificación independiente, `grant` es idempotente y revoca excesos, y los nombres de rol se validan.
+  - El esquema ausente o antiguo falla cerrado, y la CLI `pg_admin` funciona extremo a extremo con HTTP usando el rol de aplicación.
+- **Pool (28):** contratos de repositorio y arrendamientos con pool; una transacción fallida deja la conexión limpia; con el pool agotado → `StoreUnavailable` en <3 s; recuperación sin ninguna petición fallida tras `pg_terminate_backend`; el cierre libera las conexiones; un arranque fallido cierra el pool; y la app comparte el pool y lo cierra al apagarse.
+
+**Regresión completa:** `python -m unittest discover -s tests -t . -v` da **305 pruebas, 0 fallos, 0 errores, 1 omitida** (la de root citada arriba). Evidencia: `evidence/P7_regression.txt`.
+- Se repitió 3 veces más sin fallos.
+- También pasa con las advertencias como errores (salvo la de terceros ya documentada).
+- Con `MEDRIXA_TEST_PG=off` el resultado es `OK (skipped=92)`.
+- No quedan procesos de PostgreSQL.
+
+**Pruebas intermitentes encontradas y corregidas:** una ejecución de la regresión falló en una prueba de P4b. Su fixture de "firma alterada" sustituía el final de la firma por un sufijo fijo, que coincidía con la firma real cuando esta ya terminaba así (~1/1024), y entonces se aceptaba un token válido. Se corrigió en esa prueba y en la equivalente de OIDC, y se ejecutaron 30 repeticiones limpias. No era un defecto del producto.
+
+**Mutaciones de P7 (19):**
+- **OIDC: 8 de 9 detectadas.** Sobrevive la de `crit`, porque PyJWT 2.15 también rechaza extensiones críticas: es redundante, verificado.
+- **Límites: 5 de 5.**
+- **Mínimo privilegio: 5 de 5**, una de ellas solo después de corregir una prueba circular, que ahora usa una especificación independiente de privilegios.
+
+**Análisis estático:**
+- ruff (E, F, W, B, S) limpio. Los avisos de S105 y S310 están justificados y anotados; S608 se evitó sin silenciarlo.
+- **mypy 2.4.0 con plugin de pydantic y `check_untyped_defs`: 0 hallazgos en 45 archivos.**
+- **pip-audit 2.10.1:** 26 dependencias fijadas, sin vulnerabilidades conocidas (`evidence/P7_dependency_audit.json`).
+
+**Mediciones:** `evidence/P7_latency.json` (ver `docs/PERSISTENCE.md`).

@@ -80,3 +80,40 @@ La seguridad frente a ejecutores obsoletos ya la garantizan el CAS y la inmutabi
 ## ADR-019 — Campo aditivo `active_elsewhere` omitido cuando es 0
 
 `RecoveryReport`, `RecoverySummary` (CLI) y `RecoveryView` (HTTP) ganan `active_elsewhere`. En las salidas públicas se omite cuando vale 0, de modo que las respuestas v1 existentes no cambian; los esquemas lo declaran opcional con valor por defecto 0. Esquemas y OpenAPI regenerados; diferencias verificadas como puramente aditivas. TTL por defecto 30 s y latido TTL/3 son valores provisionales pendientes de aprobación de Robinson.
+
+## ADR-020 — Tipado estricto como puerta de calidad (P7.0)
+
+Se adopta mypy 2.4.0 con el plugin de pydantic y `check_untyped_defs`, con cero hallazgos sobre `app/`. Los 21 hallazgos iniciales eran tipos débiles (literales como `str`, `None` sin estrechar) y se corrigieron sin cambiar comportamiento. Configuración en `mypy.ini`.
+
+## ADR-021 — Secretos por puerto, con archivos montados como vía recomendada (P7.1)
+
+`SecretProvider` resuelve `MEDRIXA_<X>` o `MEDRIXA_<X>_FILE`, nunca ambos. Los archivos deben ser regulares, ≤64 KiB, UTF-8 y no escribibles por grupo u otros; se admiten los enlaces simbólicos de Kubernetes. Los errores nombran la variable, nunca el valor. No se incluye ningún gestor externo porque su elección está bloqueada; el puerto permite añadirlo.
+
+## ADR-022 — OIDC por el puerto existente, verificación delegada en PyJWT (P7.2)
+
+No se escribe criptografía propia. MEDRIXA decide qué clave y qué comprobaciones aplicar:
+- Algoritmos asimétricos en lista permitida, lo que hace imposible la confusión con HMAC.
+- `kid` obligatorio y `alg` de la JWK fijado.
+- iss/aud/exp/iat/sub obligatorios, con tolerancia y vida acotadas.
+- JWKS solo por HTTPS (HTTP solo en loopback, para infraestructura de prueba), sin redirecciones, con refetch limitado y obsolescencia acotada.
+
+Los sujetos no válidos como `Identifier` (como `auth0|…`) se mapean a `sub-<sha256(iss,sub)>`. La autenticación se ejecuta fuera del bucle de eventos. **Organización única:** el claim de organización debe coincidir con `MEDRIXA_ORGANIZATION_ID`. Multi-tenancy queda bloqueado (docs/SECURITY.md §4).
+
+## ADR-023 — Limitación de tasa en dos capas y capacidad reservada antes de crear (P7.3)
+
+El límite por IP se aplica antes de autenticar, para frenar la fuerza bruta, y el límite por identidad después. El token bucket tiene memoria acotada (LRU). El tope de ejecuciones se reserva **antes** de crear la ejecución, de modo que la saturación nunca deja ejecuciones huérfanas en `created`. Los códigos `RATE_LIMITED` (429) y `CAPACITY_EXCEEDED` (503) llevan `Retry-After` y son aditivos. Los límites son por proceso; con varias réplicas hace falta un limitador compartido.
+
+## ADR-024 — PostgreSQL de mínimo privilegio: el dueño migra, la aplicación solo opera (P7.4)
+
+`pg_admin migrate/grant` con `MEDRIXA_PG_ADMIN_DSN[_FILE]`. El rol de aplicación tiene exactamente: runs SELECT/INSERT/UPDATE, events SELECT/INSERT, leases SELECT/INSERT/UPDATE y migrations SELECT. Al no ser dueño, no puede desactivar los triggers append-only, lo que cierra el riesgo de P5 para el rol de aplicación. Con `MEDRIXA_PG_MIGRATE=false`, la versión de esquema se verifica y falla cerrada (`SchemaNotReady`).
+
+## ADR-025 — Pool de conexiones justificado por medición (P7.6)
+
+Medido en este equipo (`evidence/P7_latency.json`): abrir una conexión costaba unos 3,1 ms de cada operación de ~4,7 ms, incluso por socket Unix. Se adopta psycopg-pool 3.3.3 (proyecto oficial de psycopg):
+- Es opcional por repositorio (`pool_size`), lo comparten ejecuciones y arrendamientos, y comprueba cada conexión antes de entregarla.
+- Se cierra al apagar la app. `MEDRIXA_PG_POOL_SIZE` vale 4 por defecto y 0 lo desactiva.
+- Resultado: latencia mediana entre 74 % y 91 % menor.
+
+## ADR-026 — TTL de arrendamiento de 30 s, aún provisional, ahora con datos
+
+La renovación tarda ≤~11 ms en p99 sin pool y ~1 ms con pool, frente a un latido cada 10 s. El margen es de unas mil veces, así que 30 s no se cambia. El valor definitivo depende de la operación real y sigue pendiente de la decisión de Robinson.

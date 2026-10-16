@@ -39,6 +39,15 @@ Sigue prohibido: fusionar a la rama predeterminada, reescribir commits publicado
 
 - R20: arrendamiento de ejecuciones, coordinación y recuperación segura entre procesos, sin reintentar agentes y sin cambiar `StateRepository`.
 
+## Requisitos P7 (instrucción de desarrollo autónomo supervisado de Robinson, 16/10/2026)
+
+- R21: secretos por interfaces compatibles con proveedores externos, sin credenciales en el código.
+- R22: identidad OIDC por un puerto desacoplado, con validación robusta de tokens (issuer, audience, expiración, claves públicas, rotación), sin proveedor comercial definitivo ni criptografía propia.
+- R23: autorización por rol, organización y caso, con pruebas de aislamiento. La organización es única hasta decidir el modelo de multi-tenancy.
+- R24: limitación de tasa configurable, límites de recursos y protección frente a entradas maliciosas.
+- R25: PostgreSQL de mínimo privilegio, migraciones controladas y pool justificado por medición.
+- R26: TLS y cifrado en reposo documentados como requisitos de despliegue, con responsabilidades y límites.
+
 ## Exclusiones del incremento
 
 Autenticación productiva, cifrado persistente, aislamiento de código no confiable, validación clínica, regulación, FHIR conforme, modelos LLM/ML y bases de conocimiento médicas. No se declararán implementados.

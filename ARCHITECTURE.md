@@ -103,3 +103,23 @@ recover_interrupted_runs(repo, leases) ─► omite ejecuciones con arrendamient
 ```
 
 El arrendamiento aporta vivacidad; la seguridad sigue dependiendo del CAS y de la inmutabilidad terminal. `StateRepository`, el Orchestrator y los contratos de dominio no cambiaron; solo hubo campos y parámetros aditivos.
+
+## Seguridad P7
+
+```
+Entrada:   FastAPI ─ host allow-list ─ RateLimiter(IP) ─ Authenticator (puerto)
+                                                          ├─ HmacTokenAuthenticator   [desarrollo/pruebas]
+                                                          └─ OidcJwtAuthenticator     [PyJWT + JWKS, organización única]
+           ─ RateLimiter(identidad) ─ RunService (política rol×caso, idempotencia, auditoría, capacidad)
+Secretos:  SecretProvider (puerto) ─ Environment (MEDRIXA_X | MEDRIXA_X_FILE) | Static [gestor externo: BLOQUEADO]
+Datos:     PostgresStateRepository/PostgresRunLeases ─ pool compartido ─ rol de aplicación (solo DML)
+           pg_admin (rol dueño): migrate · grant
+```
+
+El núcleo de dominio no cambió. Los nuevos componentes son puertos y adaptadores (`app/security/`, `app/web/oidc.py`, `app/persistence/pg_admin.py`). Límites de confianza, STRIDE y requisitos de despliegue en `docs/SECURITY.md`.
+
+| Área | Tras P7 | Pendiente |
+|---|---|---|
+| Identity | OIDC/JWT probado con JWKS local; organización única | IdP real (BLOQUEADO); revocación; multi-tenancy (BLOQUEADO) |
+| Security | Secretos por archivo; límites de tasa y capacidad; mínimo privilegio en la base; tipado estricto; auditoría de dependencias | Gestor de secretos y cifrado en reposo (BLOQUEADO); TLS en el despliegue; limitador compartido |
+| Persistence | Pool medido y probado | Driver asíncrono; respaldos |

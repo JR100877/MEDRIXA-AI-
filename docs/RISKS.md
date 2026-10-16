@@ -1,4 +1,4 @@
-# Riesgos y límites al cierre de P6
+# Riesgos y límites al cierre de P7
 
 | Riesgo | Control actual | Pendiente |
 |---|---|---|
@@ -25,3 +25,18 @@
 La validación estructural de un snapshot detecta inconsistencias, no prueba que su autor sea confiable. Código Python dentro del mismo proceso puede eludir mecanismos de inmutabilidad; solo se admiten agentes locales de confianza.
 
 No hay diagnóstico, tratamiento, cumplimiento regulatorio, certificación ni porcentaje de eficacia clínica acreditados. Pasar pruebas técnicas no acredita ninguna de esas propiedades.
+
+## Cambios de riesgo en P7
+
+| Riesgo | Antes | Tras P7 |
+|---|---|---|
+| Identidad débil (HMAC compartido) | Único modo | OIDC/JWT probado con JWKS real local; HMAC solo para desarrollo y pruebas. Sigue pendiente un IdP real (BLOQUEADO) |
+| Dueño de la base desactiva los triggers | Abierto (P5) | **Mitigado para el rol de aplicación** (no es dueño). Sigue abierto para el rol dueño o DBA |
+| Secretos en variables de entorno | Única vía | Archivos montados `*_FILE` con permisos verificados |
+| Abuso por volumen | Sin límites | 429 por IP y por identidad; tope de ejecuciones (por proceso) |
+| Latencia de conexión a la base | Sin medir | Medida; pool con validación de conexión |
+| Dependencias vulnerables | Sin auditar | pip-audit sin hallazgos el 16/10/2026 (repetir periódicamente) |
+| Accesos entre organizaciones | No modelado | Organización única forzada en OIDC; multi-tenancy BLOQUEADO hasta decidir el modelo y probar el aislamiento |
+| Logs de `psycopg.pool` | — | Pueden incluir host, usuario y base de datos (nunca contraseñas); encaminar a logs operativos |
+
+Detalle completo, STRIDE y límites de confianza en `docs/SECURITY.md`.

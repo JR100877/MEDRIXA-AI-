@@ -7,3 +7,5 @@ uvicorn==0.53.0
 ruff==0.16.8
 # Static analysis used since P7
 mypy==2.4.0
+# Dependency vulnerability audit (P7)
+pip-audit==2.10.1

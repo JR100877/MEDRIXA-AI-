@@ -1,0 +1,21 @@
+{
+  "package": "P7",
+  "python": "3.13.16",
+  "platform": "Linux-6.18.44-fc-v139-x86_64-with-glibc2.39",
+  "postgresql_server": "16.15 ephemeral local cluster (Unix socket, peer auth)",
+  "new_runtime_dependencies": {
+    "pyjwt": "2.15.1",
+    "cryptography": "50.0.1 (already present)"
+  },
+  "new_optional_dependencies": {
+    "psycopg-pool": "3.3.3"
+  },
+  "new_dev_tools": {
+    "mypy": "2.4.0",
+    "pip-audit": "2.10.1"
+  },
+  "oidc_test_infrastructure": "real HTTP JWKS server on 127.0.0.1 with real RSA-2048 and EC P-256 keys (test fixture, not an identity provider)",
+  "real_identity_provider_used": false,
+  "network_used_by_application": false,
+  "note": "the PATH 'mypy' binary is 2.3.1; checks were run with 'python3 -m mypy' (2.4.0)"
+}

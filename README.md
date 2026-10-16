@@ -58,7 +58,7 @@ El almacenamiento duradero existe solo mediante el adaptador local provisional d
 ## API HTTP local (P4b, rama `dev/p4b-http`)
 
 ```bash
-python -m pip install -r requirements-dev.txt     # fastapi, httpx, uvicorn, ruff (versiones fijadas)
+python -m pip install -r requirements-dev.txt     # fastapi, pyjwt, httpx, uvicorn, ruff, mypy, pip-audit (fijadas)
 export MEDRIXA_ENV=development                     # solo development o test; production se rechaza
 export MEDRIXA_AUTH_SECRET="$(python -c 'import secrets; print(secrets.token_urlsafe(48))')"
 export MEDRIXA_STORE_DIR=./runs                   # opcional; sin él, la API usa memoria
@@ -79,5 +79,22 @@ python -m unittest tests.persistence.test_postgres    # crea un PostgreSQL efím
 ```
 
 Si no hay PostgreSQL disponible, esas pruebas se omiten; nunca se dan por aprobadas. Ver `docs/PERSISTENCE.md`.
+
+## Seguridad (P7, rama `dev/p7-security`)
+
+```bash
+# Secretos desde archivos montados (recomendado fuera de desarrollo): MEDRIXA_<X>_FILE
+export MEDRIXA_AUTH_SECRET_FILE=/run/secrets/medrixa_auth_secret   # modo HMAC (desarrollo/pruebas)
+# OIDC/JWT (proveedor real pendiente de decisión):
+export MEDRIXA_AUTH_MODE=oidc MEDRIXA_ORGANIZATION_ID=org-001
+export MEDRIXA_OIDC_ISSUER=https://idp.example/realms/medrixa MEDRIXA_OIDC_AUDIENCE=medrixa-api
+export MEDRIXA_OIDC_JWKS_URL=https://idp.example/realms/medrixa/protocol/openid-connect/certs
+# PostgreSQL de mínimo privilegio: el dueño migra y concede; la API usa el rol de aplicación
+MEDRIXA_PG_ADMIN_DSN_FILE=/run/secrets/pg_owner python -m app.persistence.pg_admin migrate
+MEDRIXA_PG_ADMIN_DSN_FILE=/run/secrets/pg_owner python -m app.persistence.pg_admin grant --role medrixa_app
+export MEDRIXA_PG_DSN_FILE=/run/secrets/pg_app MEDRIXA_PG_MIGRATE=false MEDRIXA_PG_POOL_SIZE=4
+```
+
+Límites configurables: `MEDRIXA_RATE_LIMIT_IP_PER_MINUTE`, `MEDRIXA_RATE_LIMIT_SUBJECT_PER_MINUTE`, `MEDRIXA_MAX_ACTIVE_RUNS`. **No es apto para producción**: ver los requisitos de despliegue y las decisiones bloqueadas en `docs/SECURITY.md`.
 
 No hay despliegue, motor clínico validado, FHIR implementado ni integración LLM/ML. La próxima tarea exacta está en `CONTINUITY.json` y `docs/NEXT_PACKAGE.md`.

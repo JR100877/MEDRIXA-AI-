@@ -1,0 +1,118 @@
+test_end_to_end_with_oidc_tokens (tests.security.test_oidc.HttpIntegrationTests.test_end_to_end_with_oidc_tokens) ... ok
+test_issue_token_cli_refused_in_oidc_mode (tests.security.test_oidc.HttpIntegrationTests.test_issue_token_cli_refused_in_oidc_mode) ... ok
+test_fetch_refuses_redirects_size_and_non_loopback_http (tests.security.test_oidc.JwksTests.test_fetch_refuses_redirects_size_and_non_loopback_http) ... ok
+test_idp_outage_uses_cache_within_staleness_bound (tests.security.test_oidc.JwksTests.test_idp_outage_uses_cache_within_staleness_bound) ... JWKS refresh failed; using cached keys if still allowed
+JWKS refresh failed; using cached keys if still allowed
+ok
+test_key_rotation (tests.security.test_oidc.JwksTests.test_key_rotation) ... ok
+test_no_stale_tolerance_fails_closed (tests.security.test_oidc.JwksTests.test_no_stale_tolerance_fails_closed) ... JWKS refresh failed; using cached keys if still allowed
+ok
+test_random_kids_cannot_amplify_fetches (tests.security.test_oidc.JwksTests.test_random_kids_cannot_amplify_fetches) ... ok
+test_unusable_jwks_documents_fail_closed (tests.security.test_oidc.JwksTests.test_unusable_jwks_documents_fail_closed) ... JWKS refresh failed; using cached keys if still allowed
+JWKS refresh failed; using cached keys if still allowed
+JWKS refresh failed; using cached keys if still allowed
+JWKS refresh failed; using cached keys if still allowed
+JWKS refresh failed; using cached keys if still allowed
+ok
+test_environment_configuration (tests.security.test_oidc.SettingsTests.test_environment_configuration) ... ok
+test_url_and_algorithm_policy (tests.security.test_oidc.SettingsTests.test_url_and_algorithm_policy) ... ok
+test_claim_failures (tests.security.test_oidc.ValidationTests.test_claim_failures) ... ok
+test_declared_jwk_alg_must_match (tests.security.test_oidc.ValidationTests.test_declared_jwk_alg_must_match) ... ok
+test_header_and_algorithm_attacks (tests.security.test_oidc.ValidationTests.test_header_and_algorithm_attacks) ... ok
+test_subject_mapping_and_nested_roles (tests.security.test_oidc.ValidationTests.test_subject_mapping_and_nested_roles) ... ok
+test_valid_rsa_pss_and_ec_tokens (tests.security.test_oidc.ValidationTests.test_valid_rsa_pss_and_ec_tokens) ... ok
+test_capacity_exhaustion_refuses_without_creating_runs (tests.security.test_ratelimit.CapacityTests.test_capacity_exhaustion_refuses_without_creating_runs) ... ok
+test_disallowed_host_is_refused_without_consuming_budget (tests.security.test_ratelimit.HttpRateLimitTests.test_disallowed_host_is_refused_without_consuming_budget) ... ok
+test_environment_configuration (tests.security.test_ratelimit.HttpRateLimitTests.test_environment_configuration) ... ok
+test_ip_limit_applies_before_authentication (tests.security.test_ratelimit.HttpRateLimitTests.test_ip_limit_applies_before_authentication) ... ok
+test_subject_limit_is_per_identity (tests.security.test_ratelimit.HttpRateLimitTests.test_subject_limit_is_per_identity) ... ok
+test_burst_then_refill (tests.security.test_ratelimit.TokenBucketTests.test_burst_then_refill) ... ok
+test_invalid_configuration (tests.security.test_ratelimit.TokenBucketTests.test_invalid_configuration) ... ok
+test_keys_are_independent_and_memory_bounded (tests.security.test_ratelimit.TokenBucketTests.test_keys_are_independent_and_memory_bounded) ... ok
+test_retry_after_reflects_rate (tests.security.test_ratelimit.TokenBucketTests.test_retry_after_reflects_rate) ... ok
+test_thread_safety_exact_budget (tests.security.test_ratelimit.TokenBucketTests.test_thread_safety_exact_budget) ... ok
+test_environment_direct_file_and_ambiguity (tests.security.test_secrets.ProviderTests.test_environment_direct_file_and_ambiguity) ... ok
+test_names_are_restricted (tests.security.test_secrets.ProviderTests.test_names_are_restricted) ... ok
+test_secret_values_never_appear_in_repr (tests.security.test_secrets.ProviderTests.test_secret_values_never_appear_in_repr) ... ok
+test_kubernetes_style_symlink_and_read_only_modes_accepted (tests.security.test_secrets.SecretFileTests.test_kubernetes_style_symlink_and_read_only_modes_accepted) ... ok
+test_reads_value_and_strips_one_trailing_newline (tests.security.test_secrets.SecretFileTests.test_reads_value_and_strips_one_trailing_newline) ... ok
+test_unreadable_file_refused (tests.security.test_secrets.SecretFileTests.test_unreadable_file_refused) ... skipped 'root bypasses read permissions'
+test_unsafe_or_invalid_files_refused_without_echo (tests.security.test_secrets.SecretFileTests.test_unsafe_or_invalid_files_refused_without_echo) ... ok
+test_custom_provider_replaces_environment_secrets (tests.security.test_secrets.SettingsIntegrationTests.test_custom_provider_replaces_environment_secrets) ... ok
+test_settings_read_secrets_from_files (tests.security.test_secrets.SettingsIntegrationTests.test_settings_read_secrets_from_files) ... ok
+test_weak_secret_from_file_still_rejected (tests.security.test_secrets.SettingsIntegrationTests.test_weak_secret_from_file_still_rejected) ... ok
+
+----------------------------------------------------------------------
+Ran 35 tests in 8.309s
+
+OK (skipped=1)
+test_migrate_and_grant_through_cli_then_serve_with_app_role (tests.persistence.test_pg_least_privilege.AdminCliTests.test_migrate_and_grant_through_cli_then_serve_with_app_role) ... /usr/local/lib/python3.13/dist-packages/starlette/testclient.py:53: DeprecationWarning: The anyio.abc.BlockingPortal alias is deprecated, use anyio.from_thread.BlockingPortal instead.
+  _PortalFactoryType = Callable[[], AbstractContextManager[anyio.abc.BlockingPortal]]
+ok
+test_acquire_is_exclusive_while_live (tests.persistence.test_pg_least_privilege.AppRoleLeaseContractTests.test_acquire_is_exclusive_while_live) ... ok
+test_concurrent_acquire_single_winner (tests.persistence.test_pg_least_privilege.AppRoleLeaseContractTests.test_concurrent_acquire_single_winner) ... ok
+test_expired_lease_is_never_revived_and_can_be_taken (tests.persistence.test_pg_least_privilege.AppRoleLeaseContractTests.test_expired_lease_is_never_revived_and_can_be_taken) ... ok
+test_invalid_arguments_rejected (tests.persistence.test_pg_least_privilege.AppRoleLeaseContractTests.test_invalid_arguments_rejected) ... ok
+test_release_frees_and_stale_release_is_harmless (tests.persistence.test_pg_least_privilege.AppRoleLeaseContractTests.test_release_frees_and_stale_release_is_harmless) ... ok
+test_renew_only_by_live_holder (tests.persistence.test_pg_least_privilege.AppRoleLeaseContractTests.test_renew_only_by_live_holder) ... ok
+test_case_isolation_under_concurrent_runs (tests.persistence.test_pg_least_privilege.AppRoleRepositoryContractTests.test_case_isolation_under_concurrent_runs) ... ok
+test_concurrent_writers_single_winner (tests.persistence.test_pg_least_privilege.AppRoleRepositoryContractTests.test_concurrent_writers_single_winner) ... ok
+test_create_and_load_round_trip (tests.persistence.test_pg_least_privilege.AppRoleRepositoryContractTests.test_create_and_load_round_trip) ... ok
+test_create_requires_new_run (tests.persistence.test_pg_least_privilege.AppRoleRepositoryContractTests.test_create_requires_new_run) ... ok
+test_cross_case_write_rejected (tests.persistence.test_pg_least_privilege.AppRoleRepositoryContractTests.test_cross_case_write_rejected) ... ok
+test_duplicate_run_rejected_original_kept (tests.persistence.test_pg_least_privilege.AppRoleRepositoryContractTests.test_duplicate_run_rejected_original_kept) ... ok
+test_every_transition_persisted_before_publish (tests.persistence.test_pg_least_privilege.AppRoleRepositoryContractTests.test_every_transition_persisted_before_publish) ... ok
+test_exactly_one_transition_per_save (tests.persistence.test_pg_least_privilege.AppRoleRepositoryContractTests.test_exactly_one_transition_per_save) ... ok
+test_failed_write_keeps_memory_and_store (tests.persistence.test_pg_least_privilege.AppRoleRepositoryContractTests.test_failed_write_keeps_memory_and_store) ... ok
+test_foreign_writer_conflict_is_not_overwritten (tests.persistence.test_pg_least_privilege.AppRoleRepositoryContractTests.test_foreign_writer_conflict_is_not_overwritten) ... ok
+test_history_rewrite_rejected (tests.persistence.test_pg_least_privilege.AppRoleRepositoryContractTests.test_history_rewrite_rejected) ... ok
+test_missing_and_invalid_run_ids (tests.persistence.test_pg_least_privilege.AppRoleRepositoryContractTests.test_missing_and_invalid_run_ids) ... ok
+test_result_never_accepted_twice_across_resume (tests.persistence.test_pg_least_privilege.AppRoleRepositoryContractTests.test_result_never_accepted_twice_across_resume) ... ok
+test_stale_revision_rejected_without_change (tests.persistence.test_pg_least_privilege.AppRoleRepositoryContractTests.test_stale_revision_rejected_without_change) ... ok
+test_terminal_run_is_immutable (tests.persistence.test_pg_least_privilege.AppRoleRepositoryContractTests.test_terminal_run_is_immutable) ... ok
+test_application_role_cannot_migrate (tests.persistence.test_pg_least_privilege.PrivilegeBoundaryTests.test_application_role_cannot_migrate) ... ok
+test_application_role_cannot_regrant (tests.persistence.test_pg_least_privilege.PrivilegeBoundaryTests.test_application_role_cannot_regrant) ... ok
+test_database_refuses_everything_outside_the_grant (tests.persistence.test_pg_least_privilege.PrivilegeBoundaryTests.test_database_refuses_everything_outside_the_grant) ... ok
+test_grant_is_idempotent_and_revokes_excess (tests.persistence.test_pg_least_privilege.PrivilegeBoundaryTests.test_grant_is_idempotent_and_revokes_excess) ... ok
+test_grants_match_the_declared_minimum (tests.persistence.test_pg_least_privilege.PrivilegeBoundaryTests.test_grants_match_the_declared_minimum) ... ok
+test_invalid_role_names_rejected (tests.persistence.test_pg_least_privilege.PrivilegeBoundaryTests.test_invalid_role_names_rejected) ... ok
+test_unmigrated_or_outdated_schema_fails_closed (tests.persistence.test_pg_least_privilege.PrivilegeBoundaryTests.test_unmigrated_or_outdated_schema_fails_closed) ... ok
+test_close_releases_connections (tests.persistence.test_pg_pool.PoolBehaviourTests.test_close_releases_connections) ... ok
+test_exhausted_pool_fails_fast_as_store_unavailable (tests.persistence.test_pg_pool.PoolBehaviourTests.test_exhausted_pool_fails_fast_as_store_unavailable) ... ok
+test_failed_start_closes_the_pool (tests.persistence.test_pg_pool.PoolBehaviourTests.test_failed_start_closes_the_pool) ... error connecting in 'medrixa': connection is bad: connection to server on socket "/nonexistent/medrixa/.s.PGSQL.5432" failed: No such file or directory
+	Is the server running locally and accepting connections on that socket?
+error connecting in 'medrixa': connection is bad: connection to server on socket "/nonexistent/medrixa/.s.PGSQL.5432" failed: No such file or directory
+	Is the server running locally and accepting connections on that socket?
+error connecting in 'medrixa': connection is bad: connection to server on socket "/nonexistent/medrixa/.s.PGSQL.5432" failed: No such file or directory
+	Is the server running locally and accepting connections on that socket?
+ok
+test_failed_transaction_leaves_connection_clean (tests.persistence.test_pg_pool.PoolBehaviourTests.test_failed_transaction_leaves_connection_clean) ... ok
+test_http_app_shares_and_closes_pool (tests.persistence.test_pg_pool.PoolBehaviourTests.test_http_app_shares_and_closes_pool) ... ok
+test_invalid_pool_size (tests.persistence.test_pg_pool.PoolBehaviourTests.test_invalid_pool_size) ... ok
+test_recovers_after_server_terminates_pooled_connections (tests.persistence.test_pg_pool.PoolBehaviourTests.test_recovers_after_server_terminates_pooled_connections) ... ok
+test_acquire_is_exclusive_while_live (tests.persistence.test_pg_pool.PooledLeaseContractTests.test_acquire_is_exclusive_while_live) ... ok
+test_concurrent_acquire_single_winner (tests.persistence.test_pg_pool.PooledLeaseContractTests.test_concurrent_acquire_single_winner) ... ok
+test_expired_lease_is_never_revived_and_can_be_taken (tests.persistence.test_pg_pool.PooledLeaseContractTests.test_expired_lease_is_never_revived_and_can_be_taken) ... ok
+test_invalid_arguments_rejected (tests.persistence.test_pg_pool.PooledLeaseContractTests.test_invalid_arguments_rejected) ... ok
+test_release_frees_and_stale_release_is_harmless (tests.persistence.test_pg_pool.PooledLeaseContractTests.test_release_frees_and_stale_release_is_harmless) ... ok
+test_renew_only_by_live_holder (tests.persistence.test_pg_pool.PooledLeaseContractTests.test_renew_only_by_live_holder) ... ok
+test_case_isolation_under_concurrent_runs (tests.persistence.test_pg_pool.PooledRepositoryContractTests.test_case_isolation_under_concurrent_runs) ... ok
+test_concurrent_writers_single_winner (tests.persistence.test_pg_pool.PooledRepositoryContractTests.test_concurrent_writers_single_winner) ... ok
+test_create_and_load_round_trip (tests.persistence.test_pg_pool.PooledRepositoryContractTests.test_create_and_load_round_trip) ... ok
+test_create_requires_new_run (tests.persistence.test_pg_pool.PooledRepositoryContractTests.test_create_requires_new_run) ... ok
+test_cross_case_write_rejected (tests.persistence.test_pg_pool.PooledRepositoryContractTests.test_cross_case_write_rejected) ... ok
+test_duplicate_run_rejected_original_kept (tests.persistence.test_pg_pool.PooledRepositoryContractTests.test_duplicate_run_rejected_original_kept) ... ok
+test_every_transition_persisted_before_publish (tests.persistence.test_pg_pool.PooledRepositoryContractTests.test_every_transition_persisted_before_publish) ... ok
+test_exactly_one_transition_per_save (tests.persistence.test_pg_pool.PooledRepositoryContractTests.test_exactly_one_transition_per_save) ... ok
+test_failed_write_keeps_memory_and_store (tests.persistence.test_pg_pool.PooledRepositoryContractTests.test_failed_write_keeps_memory_and_store) ... ok
+test_foreign_writer_conflict_is_not_overwritten (tests.persistence.test_pg_pool.PooledRepositoryContractTests.test_foreign_writer_conflict_is_not_overwritten) ... ok
+test_history_rewrite_rejected (tests.persistence.test_pg_pool.PooledRepositoryContractTests.test_history_rewrite_rejected) ... ok
+test_missing_and_invalid_run_ids (tests.persistence.test_pg_pool.PooledRepositoryContractTests.test_missing_and_invalid_run_ids) ... ok
+test_result_never_accepted_twice_across_resume (tests.persistence.test_pg_pool.PooledRepositoryContractTests.test_result_never_accepted_twice_across_resume) ... ok
+test_stale_revision_rejected_without_change (tests.persistence.test_pg_pool.PooledRepositoryContractTests.test_stale_revision_rejected_without_change) ... ok
+test_terminal_run_is_immutable (tests.persistence.test_pg_pool.PooledRepositoryContractTests.test_terminal_run_is_immutable) ... ok
+
+----------------------------------------------------------------------
+Ran 57 tests in 16.392s
+
+OK

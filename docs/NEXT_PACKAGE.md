@@ -1,26 +1,22 @@
-# P7 — siguiente paquete (propuesta de planificación, no fase aprobada)
+# P8 — siguiente paquete (propuesta de planificación, no fase aprobada)
 
-Base: P6 en la rama `dev/p6-leases`, publicada y sin fusionar. Ver `CONTINUITY.json`.
+Base: P7 en la rama `dev/p7-security`, publicada y sin fusionar. Ver `CONTINUITY.json`.
 
-## Objetivo
+## Bloqueos vigentes (decisión de Robinson)
 
-Endurecer la seguridad para acercar MEDRIXA a un despliegue controlado, que **sigue sin estar autorizado**: identidad, secretos, cifrado y controles de acceso.
+Proveedor de identidad, gestor de secretos y custodia de claves, cifrado en reposo, modelo de multi-tenancy y valores operativos definitivos. Las opciones y la recomendación están en `docs/SECURITY.md` §4. Ninguno impide P8.
 
-## Bloqueos que requieren decisión humana (Robinson)
+## Objetivo de P8: observabilidad independiente del proveedor
 
-1. **Proveedor de identidad para producción:** OIDC con Keycloak, Entra ID, Auth0 u otro. Condiciona cómo se validan los tokens, sus claims (roles y casos) y su revocación. Sin esta decisión no se reemplaza el token HMAC provisional.
-2. **Gestión de secretos:** gestor de secretos, KMS o variables gestionadas, y la política de rotación.
-3. **Cifrado en reposo:** a nivel de disco o volumen, de base de datos o de aplicación (campos de `ClinicalCase`), y quién custodia las claves.
-4. **Valores operativos:** TTL de arrendamiento (hoy 30 s, provisional), vida máxima de los tokens y límites de tasa.
+1. **Métricas por un puerto**, con un adaptador en memoria para pruebas y otro opcional para OpenTelemetry (`opentelemetry-api` ya está en el cierre de dependencias por FastAPI). Se medirán latencia por ruta, códigos de estado, rechazos por límite, capacidad en uso, pool (uso y espera), arrendamientos (renovaciones y pérdidas) y recuperación.
+2. **Trazas** con un `request_id` propagado a la auditoría, a los registros de persistencia y a los arrendamientos, sin incluir carga clínica.
+3. **Endpoint de preparación** (`/v1/ready`) que compruebe almacén, esquema e IdP (JWKS en caché), separado de `/v1/health`, sin revelar detalles.
+4. **Pruebas de carga reproducibles** locales para dimensionar `MEDRIXA_MAX_ACTIVE_RUNS`, los límites de tasa y el pool con datos reales del equipo.
 
-## Trabajo técnico independiente y seguro, sin esas decisiones
+## Trabajo técnico independiente posterior (P9, propuesta)
 
-- Rotación de la clave HMAC local con `kid` y varias claves válidas a la vez, para desarrollo, con pruebas.
-- Limitación de tasa por sujeto y por IP en la API local: puerto más adaptador en memoria.
-- Roles de PostgreSQL de mínimo privilegio (migración separada del rol de aplicación), probados contra el clúster efímero.
-- Driver o ejecutor asíncrono para que la E/S no bloquee el bucle de eventos.
-- Pool de conexiones para PostgreSQL.
+Ejecución en segundo plano fuera del ciclo HTTP (preservando idempotencia, fencing y no reintento de agentes), un limitador de tasa compartido (adaptador PostgreSQL), un contenedor reproducible sin publicar y diseño de contratos de interoperabilidad (FHIR) sin afirmar conformidad.
 
 ## Condiciones
 
-No hay despliegue, datos reales ni infraestructura gestionada sin autorización. Ninguna rama se fusiona sin autorización.
+Sin despliegue, datos reales, servicios de pago ni fusiones sin autorización.

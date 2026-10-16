@@ -35,3 +35,20 @@ Adaptador HTTP FastAPI local `medrixa.http.v1`: 5 endpoints, contrato OpenAPI pu
 ## P6 — 2026-10-15 (Colombia), rama `dev/p6-leases` (base `dev/p5-postgres` @ e6022d5)
 
 Puerto `RunLeases` (memoria, archivo, PostgreSQL con reloj de la base y migración v2 aditiva), `LeasedExecutor` con latido y guarda de escritura monotónica, recuperación que respeta arrendamientos vivos (`active_elsewhere`), CLI y API integradas (`MEDRIXA_LEASE_TTL_SECONDS`). Cambios aditivos: `set_write_guard` en `PersistentStateManager`, parámetro `leases` en `recover_interrupted_runs`, campo `active_elsewhere` (omitido cuando 0). Sin dependencias nuevas. 32 pruebas nuevas; regresión 213/213; 6/6 mutaciones detectadas. Siguiente: P7 (`docs/NEXT_PACKAGE.md`).
+
+## P7 — 2026-10-16 (Colombia), rama `dev/p7-security` (base `dev/p6-leases` @ 5a6cd31)
+
+Endurecimiento de seguridad en incrementos:
+- **P7.0:** tipado estricto con mypy, cero hallazgos.
+- **P7.1:** puerto de secretos con archivos montados `*_FILE`.
+- **P7.2:** autenticador OIDC/JWT (PyJWT 2.15.1) con JWKS, rotación, refetch limitado y organización única (`MEDRIXA_AUTH_MODE=oidc`).
+- **P7.3:** limitación de tasa por IP y por identidad, y tope de ejecuciones (429/503 con `Retry-After`).
+- **P7.4:** PostgreSQL de mínimo privilegio (`pg_admin`, `MEDRIXA_PG_MIGRATE`, `SchemaNotReady`).
+- **P7.5:** mediciones de latencia.
+- **P7.6:** pool de conexiones psycopg-pool (`MEDRIXA_PG_POOL_SIZE`).
+- **Documentación:** `docs/SECURITY.md` (límites de confianza, STRIDE, requisitos de despliegue, decisiones bloqueadas).
+- **Auditoría de dependencias:** pip-audit, sin vulnerabilidades conocidas.
+
+Contratos: los códigos de error `RATE_LIMITED` y `CAPACITY_EXCEEDED` y el 429 documentado son aditivos, y cambió la descripción del esquema de seguridad. Los contratos de dominio no cambiaron.
+
+Se corrigieron dos fixtures de prueba intermitentes (firma "alterada" que podía coincidir con la real). Hay 92 pruebas nuevas y la regresión da 305 (1 omitida como root, verificada como usuario no privilegiado). Sin despliegue, sin IdP real, sin validación clínica. Siguiente: P8 (`docs/NEXT_PACKAGE.md`).

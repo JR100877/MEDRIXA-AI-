@@ -22,5 +22,11 @@
 | R18 seguridad por defecto y auditoría | web/settings.py; web/audit.py; `serve` en 127.0.0.1 | SettingsTests; AdverseTests; prueba con servidor real (evidencia en TEST_STATUS) |
 | R19 adaptador PostgreSQL compatible con StateRepository | persistence/postgres.py; `MEDRIXA_PG_DSN` | PostgresRepositoryContractTests (suite P4 sin cambios); PostgresSpecificTests; PostgresProcessRestartTests; PostgresHttpTests; mutaciones P5 M1–M4 |
 | R20 arrendamiento y recuperación entre procesos | persistence/leases.py; leasing.py; recovery `leases`; postgres `PostgresRunLeases` | LeaseContract ×3 adaptadores; LeasedExecutionTests; LeaseAwareRecoveryTests; LeasedProcessRestartTests (SIGKILL, archivo y PostgreSQL); mutaciones P6 M1–M6 |
+| R21 secretos | security/secrets.py; settings | SecretFileTests; ProviderTests; SettingsIntegrationTests (+ prueba como no root) |
+| R22 OIDC | web/oidc.py; settings `MEDRIXA_AUTH_MODE` | ValidationTests; JwksTests (rotación, `kid` aleatorios, caída del IdP); HttpIntegrationTests; mutaciones P7.2 |
+| R23 organización y caso | web/oidc.py (organización); web/policy.py | HttpIntegrationTests (otra organización → 401, otro caso → 404); AuthorizationTests |
+| R24 límites | security/ratelimit.py; web/app.py; web/service.py | TokenBucketTests; HttpRateLimitTests; CapacityTests; mutaciones P7.3 |
+| R25 PostgreSQL de mínimo privilegio y pool | persistence/pg_admin.py; postgres.py | AppRole*ContractTests; PrivilegeBoundaryTests; AdminCliTests; Pooled*ContractTests; PoolBehaviourTests; evidence/P7_latency.json |
+| R26 requisitos de despliegue | docs/SECURITY.md | Inspección documental (no automatizable) |
 
 Se distingue evidencia automatizada de inspección: independencia y ausencia de servicios externos se constatan en las fuentes, no mediante una certificación de seguridad.

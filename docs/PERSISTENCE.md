@@ -116,3 +116,20 @@ Una base gestionada o con costos requiere autorización.
 - Con archivos y memoria, los relojes de pared deben ser coherentes en el único equipo.
 - Las pausas largas del proceso (GC o suspensión) quedan cubiertas por la guarda local, pero un reloj de pared que salte puede acortar o alargar el arrendamiento en esos adaptadores.
 - La E/S de renovación es síncrona dentro del bucle de eventos.
+
+## Mínimo privilegio y pool en PostgreSQL (P7.4, P7.6)
+
+**Roles.** El rol **dueño** aplica las migraciones (`python -m app.persistence.pg_admin migrate`, con `MEDRIXA_PG_ADMIN_DSN[_FILE]`). El rol de **aplicación** recibe con `pg_admin grant --role <rol>` exactamente:
+
+| Tabla | Privilegios |
+|---|---|
+| `medrixa_runs` | SELECT, INSERT, UPDATE |
+| `medrixa_run_events` | SELECT, INSERT |
+| `medrixa_run_leases` | SELECT, INSERT, UPDATE |
+| `medrixa_schema_migrations` | SELECT |
+
+El rol de aplicación no es dueño de nada, así que no puede `ALTER`, desactivar los triggers append-only, `DROP`, `CREATE` ni re-conceder privilegios. Lo comprueba la propia base de datos en `tests/persistence/test_pg_least_privilege.py`. La API se configura con `MEDRIXA_PG_MIGRATE=false`: la versión de esquema se verifica al arrancar y falla cerrada (`SchemaNotReady`).
+
+**Pool.** `PostgresStateRepository(dsn, pool_size=N)` usa psycopg-pool 3.3.3, con conexiones validadas antes de entregarlas y transacción confirmada o revertida igual que sin pool. En la API, `MEDRIXA_PG_POOL_SIZE` vale 4 por defecto (0 lo desactiva), el pool se comparte entre ejecuciones y arrendamientos y se cierra al apagar. Si el pool está agotado, la espera máxima es `connect_timeout` y luego `StoreUnavailable`.
+
+**Medición** (`evidence/P7_latency.json`, este equipo, socket Unix, p50): el pool baja de 4,6 a 0,9 ms la creación, de 5,0 a 0,5 ms la lectura, de 7,2 a 1,5 ms el guardado, de 4,2 a 0,6 ms la renovación de arrendamiento y de 51 a 13 ms una ejecución completa.
