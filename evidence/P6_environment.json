@@ -1,0 +1,9 @@
+{
+  "package": "P6",
+  "python": "3.13.16",
+  "platform": "Linux-6.18.44-fc-v139-x86_64-with-glibc2.39",
+  "postgresql_server": "16.15 ephemeral local cluster (see evidence/P5_environment.json)",
+  "new_dependencies": [],
+  "lease_timing_in_tests": "real wall-clock waits with short TTLs (0.6 s unit tests, 3 s SIGKILL tests); no clock mocking",
+  "network_used": false
+}

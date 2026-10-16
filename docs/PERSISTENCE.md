@@ -43,7 +43,7 @@ Para desarrollo y pruebas de reinicio en un solo equipo.
 | `awaiting_human_review` | Sin cambios. |
 | Registro corrupto | Se cuenta; nunca se modifica, repara ni borra. |
 
-La recuperación es idempotente. Si hay recuperadores concurrentes, cada ejecución recibe una sola transición, gracias al CAS. **Límite:** no hay arrendamiento ni latido. Recuperar una ejecución que otro proceso vivo aún ejecuta hace fallar a ese proceso con `RevisionConflict`. Es seguro, pero disruptivo.
+La recuperación es idempotente. Si hay recuperadores concurrentes, cada ejecución recibe una sola transición, gracias al CAS. Sin arrendamientos (modo P4), recuperar una ejecución que otro proceso vivo aún ejecuta hace fallar a ese proceso con `RevisionConflict`: es seguro, pero disruptivo. **Desde P6**, con arrendamientos, las ejecuciones con un arrendamiento vivo se omiten y se informan como `active_elsewhere` (ver más abajo).
 
 ## Adaptador PostgreSQL — `PostgresStateRepository` (P5, `app/persistence/postgres.py`)
 
@@ -78,3 +78,41 @@ Requiere `psycopg` 3 (`requirements-postgres.txt`) y se importa solo cuando se u
 - Driver asíncrono: la E/S bloquea el bucle de eventos de la API.
 
 Una base gestionada o con costos requiere autorización.
+
+## Arrendamientos de ejecución (P6, `app/persistence/leases.py` y `leasing.py`)
+
+**Para qué sirven.** El arrendamiento detecta vivacidad; no es el mecanismo de seguridad. La seguridad ya la dan el CAS y la inmutabilidad del estado terminal: si la recuperación pasa una ejecución a revisión, cualquier escritura tardía del ejecutor original falla. El arrendamiento solo evita que la recuperación **interrumpa ejecuciones vivas** en otros procesos.
+
+**Puerto `RunLeases`**, separado de `StateRepository`, que no cambia:
+
+| Operación | Contrato |
+|---|---|
+| `acquire(run_id, owner, ttl)` | Solo si no hay un arrendamiento vivo; el `epoch` sube en 1. Si hay uno vivo, de cualquier dueño → `LeaseHeld`. |
+| `renew(lease, ttl)` | Solo el titular vigente (dueño + epoch) y **antes de vencer**. Un arrendamiento vencido nunca revive, porque la recuperación pudo haber actuado → `LeaseLost`. |
+| `release(lease)` | Lo vence si sigue vigente. Una liberación obsoleta no afecta al titular nuevo. |
+| `live(run_id)` | El arrendamiento vigente, o `None`. |
+
+**Adaptadores:**
+
+| Adaptador | Reloj | Alcance |
+|---|---|---|
+| `InMemoryRunLeases` | Pared local | Un proceso |
+| `LocalFileRunLeases` | Pared local | Un solo equipo; un arrendamiento corrupto no otorga vivacidad ni reinicia el epoch |
+| `PostgresRunLeases` | **El de la base de datos** (`clock_timestamp()`) | Varios equipos; sentencias atómicas; tabla `medrixa_run_leases` por migración v2, aditiva |
+
+**`LeasedExecutor`:**
+- Adquiere el arrendamiento antes de la primera transición.
+- Renueva con un latido cada TTL/3.
+- Instala una **guarda de escritura con reloj monotónico local**: deja de escribir cuando pasa el plazo de adquisición o renovación + TTL − margen, aunque la renovación siga en curso.
+- Si una renovación falla, cancela la ejecución y lanza `LeaseLost`. **Nunca reintenta agentes.**
+
+**Integración:**
+- La CLI `--store` usa arrendamientos de archivo, también en `--recover`.
+- La API usa el adaptador correspondiente al almacén. El TTL se configura con `MEDRIXA_LEASE_TTL_SECONDS` (1–3600 s; 30 s por defecto, de forma **provisional, pendiente de aprobación**).
+- `recover_interrupted_runs(repo, leases)` informa `active_elsewhere`.
+- Las vistas de recuperación de la CLI y de HTTP solo muestran `active_elsewhere` cuando es mayor que 0, así que las salidas v1 no cambian en lo demás.
+
+**Límites:**
+- Con archivos y memoria, los relojes de pared deben ser coherentes en el único equipo.
+- Las pausas largas del proceso (GC o suspensión) quedan cubiertas por la guarda local, pero un reloj de pared que salte puede acortar o alargar el arrendamiento en esos adaptadores.
+- La E/S de renovación es síncrona dentro del bucle de eventos.

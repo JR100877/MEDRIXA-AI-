@@ -72,3 +72,11 @@ Catálogo fijo de códigos y mensajes; manejadores propios reemplazan el 422 de 
 ## ADR-017 — Pruebas contra PostgreSQL real efímero, nunca simulado
 
 Las pruebas crean un clúster local temporal (socket Unix privado, sin TCP, autenticación `peer`, rol no superusuario) y una base nueva por prueba; se destruye al salir. Sin servidor disponible las pruebas se omiten explícitamente. No se usan bases compartidas, gestionadas ni con datos reales.
+
+## ADR-018 — Arrendamientos para vivacidad, no para seguridad (P6)
+
+La seguridad frente a ejecutores obsoletos ya la garantizan el CAS y la inmutabilidad terminal (P4). Los arrendamientos solo permiten que la recuperación conviva con ejecutores vivos de otros procesos. Por eso viven en un puerto propio (`RunLeases`) y `StateRepository` no cambia. Un arrendamiento vencido nunca revive; los adaptadores PostgreSQL usan el reloj de la base. `PersistentStateManager` recibe una guarda de escritura opcional (aditivo) que el ejecutor usa con un plazo monotónico local, de modo que deja de escribir antes de que su arrendamiento pueda vencer en otra parte.
+
+## ADR-019 — Campo aditivo `active_elsewhere` omitido cuando es 0
+
+`RecoveryReport`, `RecoverySummary` (CLI) y `RecoveryView` (HTTP) ganan `active_elsewhere`. En las salidas públicas se omite cuando vale 0, de modo que las respuestas v1 existentes no cambian; los esquemas lo declaran opcional con valor por defecto 0. Esquemas y OpenAPI regenerados; diferencias verificadas como puramente aditivas. TTL por defecto 30 s y latido TTL/3 son valores provisionales pendientes de aprobación de Robinson.

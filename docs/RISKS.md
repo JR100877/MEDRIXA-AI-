@@ -1,4 +1,4 @@
-# Riesgos y límites al cierre de P5
+# Riesgos y límites al cierre de P6
 
 | Riesgo | Control actual | Pendiente |
 |---|---|---|
@@ -7,7 +7,7 @@
 | Inferencia médica sin validar | Agentes solo comprueban presencia; revisión humana terminal | Protocolos científicos, expertos y regulación antes de uso clínico |
 | Agente defectuoso/bloqueante | Registro explícito, límite de pasos, timeout y rechazo de resultados tardíos | Aislamiento en procesos para código no confiable; timeout actual es cooperativo |
 | Caída de proceso | Cada transición se persiste antes de publicarse; tras un reinicio, la recuperación lleva lo interrumpido a revisión `INTERRUPTED` sin reejecutar agentes. Probado con SIGKILL real en el adaptador de archivos y en PostgreSQL (P5) | El efecto de un agente en vuelo queda desconocido y debe revisarlo una persona |
-| Recuperación concurrente con ejecutor vivo | CAS: el ejecutor falla con `RevisionConflict` y nunca sobrescribe | Sin arrendamiento/latido: ejecutar la recuperación al arranque, sin ejecutores activos |
+| Recuperación concurrente con ejecutor vivo | CAS + inmutabilidad terminal (seguridad). P6: arrendamientos con latido y guarda de escritura; la recuperación omite ejecuciones con arrendamiento vivo. Probado con SIGKILL en archivo y PostgreSQL | En archivo y memoria, el arrendamiento depende del reloj de pared de un solo equipo. Una pausa larga sin renovar detiene la ejecución, que queda para revisión. TTL por defecto provisional (30 s) |
 | Alteración de eventos | Validación de secuencia y correlación, guardado que solo extiende el historial, SHA-256. En PostgreSQL (P5): eventos append-only forzados por triggers y contraste instantánea/eventos en cada lectura | Sin firma criptográfica. Un propietario de la base puede desactivar los triggers (se detecta al leer si la instantánea y los eventos difieren, no si ambos se falsifican de forma coherente). Con archivos, quien escribe el directorio puede falsificar un registro |
 | Concurrencia entre procesos | RLock en proceso; en almacenamiento, bloqueo exclusivo por ejecución (`flock`) + CAS. Probado con 8 hilos y 4 procesos | Sin bloqueo multi-servidor ni sistemas de archivos de red; Windows (`msvcrt.locking`) no probado |
 | Registro corrupto | Se detecta, se informa y nunca se modifica, repara ni borra | Procedimiento operativo de cuarentena/restauración desde respaldo |

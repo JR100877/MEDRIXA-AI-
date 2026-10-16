@@ -84,5 +84,5 @@ Todos los errores usan el mismo sobre: `{"api_version":"medrixa.http.v1","error"
 ## Límites conocidos
 
 - La ejecución corre dentro de la petición, y la E/S del adaptador de archivos es bloqueante en el bucle de eventos. Es aceptable en local, pero hace falta un ejecutor en segundo plano o un adaptador asíncrono antes de soportar carga.
-- `RUNS_ACTIVE` solo protege la recuperación frente a ejecuciones del **mismo proceso**. Otros procesos dependen de que no haya arrendamientos de ejecución, un pendiente de P6.
+- `RUNS_ACTIVE` protege la recuperación frente a ejecuciones del **mismo proceso**. **Desde P6**, cada creación se ejecuta bajo un arrendamiento con latido, y `POST /v1/admin/recovery` omite las ejecuciones con arrendamiento vivo de otros procesos: las informa en `active_elsewhere`, un campo presente solo si es mayor que 0. Si un ejecutor pierde su arrendamiento a mitad de ejecución, la respuesta es 409 `CONFLICT` y la ejecución queda para revisión, sin reintento. El TTL se configura con `MEDRIXA_LEASE_TTL_SECONDS` (30 s por defecto, provisional).
 - No hay limitación de tasa, CORS ni TLS. El servidor es local; TLS correspondería al proxy en un despliegue, que no está autorizado.

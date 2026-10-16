@@ -2,16 +2,16 @@
   "project": "MEDRIXA AI",
   "session_date_bogota": "2026-10-15",
   "implementation_line": "provisional-2026-10-15",
-  "branch": "dev/p5-postgres",
-  "base_branch": "dev/p4b-http",
-  "base_commit": "3c60ceb1cf62d4ab8c2879e6b23755421082a93e",
+  "branch": "dev/p6-leases",
+  "base_branch": "dev/p5-postgres",
+  "base_commit": "e6022d59f6083ef4a918760431b03969c940c54b",
   "remote": "https://github.com/JR100877/MEDRIXA-AI-",
-  "merge_status": "Nothing merged. P4, P4b and P5 are unmerged development branches; merging into the default branch requires Robinson's authorization.",
+  "merge_status": "Nothing merged. P4, P4b, P5 and P6 are unmerged development branches; merging into the default branch requires Robinson's authorization.",
   "historical_version": null,
   "historical_code_recovered": false,
   "code_origin": "new_authorized_provisional",
   "compatibility_with_historical_fields": "not_verified",
-  "phase": "P5_POSTGRESQL_ADAPTER",
+  "phase": "P6_RUN_LEASES",
   "status": "tested_provisional",
   "completed_packages": [
     "P0",
@@ -20,7 +20,8 @@
     "P3",
     "P4",
     "P4b",
-    "P5"
+    "P5",
+    "P6"
   ],
   "implemented": [
     "ClinicalCase",
@@ -55,11 +56,13 @@
     "python -m app.web issue-token / serve (127.0.0.1 only)",
     "PostgresStateRepository (P5; tested against real ephemeral PostgreSQL 16)",
     "database-enforced append-only event table",
-    "MEDRIXA_PG_DSN configuration (secret)"
+    "MEDRIXA_PG_DSN configuration (secret)",
+    "RunLeases port (in-memory, local file, PostgreSQL with database clock)",
+    "LeasedExecutor (heartbeat + monotonic write guard)",
+    "lease-aware recovery (active_elsewhere)"
   ],
   "not_implemented": [
     "OIDC/IdP authentication",
-    "run leases (P6 proposed)",
     "rate limiting, TLS, CORS",
     "deployment (not authorized)",
     "PostgreSQL connection pooling, async driver, TLS, least-privilege roles, backups"
@@ -69,33 +72,37 @@
     "P4: new schemas RecoveryReport, RecoverySummary",
     "P4b: new HTTP contract medrixa.http.v1 (separate from domain schema_version)",
     "P4b: PersistentStateManager accepts optional run_id (additive)",
-    "P4b: parse_strict extracted from parse_case (behaviour unchanged)"
+    "P4b: parse_strict extracted from parse_case (behaviour unchanged)",
+    "P6: RecoveryReport/RecoverySummary/RecoveryView gain active_elsewhere (additive; omitted when 0)",
+    "P6: PersistentStateManager.set_write_guard; recover_interrupted_runs(leases=None) (additive)",
+    "P6: PostgreSQL migration v2 adds medrixa_run_leases (additive)"
   ],
   "tests": {
     "command": "python -m unittest discover -s tests -t . -v",
-    "passed": 181,
+    "passed": 213,
     "failed": 0,
     "errors": 0,
     "skipped": 0,
-    "evidence": "evidence/P5_regression.txt",
-    "focused_evidence": "evidence/P5_tests.txt",
+    "evidence": "evidence/P6_regression.txt",
+    "focused_evidence": "evidence/P6_tests.txt",
     "previous_evidence": [
+      "evidence/P5_regression.txt",
       "evidence/P4b_regression.txt",
       "evidence/P4_regression.txt",
       "evidence/P3_regression.txt"
     ],
-    "mutation_checks": "P4: 4/4; P4b: 8/8; P5: 4/4 detected",
+    "mutation_checks": "P4: 4/4; P4b: 8/8; P5: 4/4; P6: 6/6 detected",
     "static_analysis": "ruff 0.16.8 E,F,W,B,S clean on app/ and scripts/",
     "source_manifest": "evidence/SOURCE_MANIFEST.json",
-    "p0_p4b_tests": 154,
-    "new_p5_tests": 27,
-    "postgres_tests_without_server": "skipped explicitly (MEDRIXA_TEST_PG=off -> OK skipped=26)"
+    "postgres_tests_without_server": "skipped explicitly (MEDRIXA_TEST_PG=off -> OK skipped=34)",
+    "p0_p5_tests": 181,
+    "new_p6_tests": 32
   },
   "runtime": {
     "python": "3.13.16",
     "python_p1_p3": "3.12.14",
     "lock": "requirements-lock.txt",
-    "environment_evidence": "evidence/P5_environment.json"
+    "environment_evidence": "evidence/P6_environment.json"
   },
   "documentation": [
     "MASTER_SPEC.md",
@@ -113,16 +120,15 @@
     "docs/REQUIREMENTS_TRACEABILITY.md",
     "docs/NEXT_PACKAGE.md"
   ],
-  "next_task": "P6 (proposed): run leases with fencing so recovery can run alongside live executors in other processes",
+  "next_task": "P7 (proposed): security hardening; BLOCKED on human decisions (identity provider, secrets management, encryption at rest, operational defaults). Independent safe work listed in docs/NEXT_PACKAGE.md",
   "next_task_spec": "docs/NEXT_PACKAGE.md",
   "blocked_on_historical_files": false,
   "clinical_validation": "not_performed",
   "production_allowed": false,
   "real_patient_data_allowed": false,
   "pending": [
-    "merge authorization for dev/p4-persistence, dev/p4b-http and dev/p5-postgres",
+    "merge authorization for dev/p4-persistence, dev/p4b-http, dev/p5-postgres and dev/p6-leases",
     "PostgreSQL pooling/async/TLS/roles/backups (P7)",
-    "run lease/heartbeat (P6)",
     "OIDC/IdP, key rotation/revocation, encryption at rest, rate limiting (P7)",
     "metrics/tracing, audit retention (P8)",
     "integration/deployment readiness without production (P9)",
@@ -137,7 +143,6 @@
     "synthetic flag cannot detect PHI",
     "durable storage only via provisional local-file adapter (single host)",
     "record checksum is not a signature",
-    "recovery must run without live executors (no lease)",
     "Windows file locking untested",
     "no clinical inference",
     "no historical compatibility proof",
@@ -146,14 +151,17 @@
     "RUNS_ACTIVE guard is per process only",
     "third-party DeprecationWarning: anyio.abc.BlockingPortal alias via Starlette TestClient (tests only)",
     "PostgreSQL adapter opens one connection per operation and blocks the event loop",
-    "a database owner can disable the append-only triggers (detected only if snapshot and events disagree)"
+    "a database owner can disable the append-only triggers (detected only if snapshot and events disagree)",
+    "file/in-memory leases rely on a single host's wall clock",
+    "lease renewal I/O is synchronous on the event loop"
   ],
   "resume_rule": "Read this file, TEST_STATUS and NEXT_PACKAGE; verify source manifest. Do not repeat historical audits or complete tests unless code changes or concrete risk requires it.",
   "branch_lineage": [
     "provisional/2026-10-15 @ 8ee8cdc4cf4a0da14ea9f0d3cb8b467531ce9246 (P0-P3, default branch)",
     "dev/p4-persistence @ 97592da9fc15b7e83a7572739b5e91bccec020ac (P4)",
     "dev/p4b-http @ 3c60ceb1cf62d4ab8c2879e6b23755421082a93e (P4b)",
-    "dev/p5-postgres (P5, this branch)"
+    "dev/p5-postgres @ e6022d59f6083ef4a918760431b03969c940c54b (P5)",
+    "dev/p6-leases (P6, this branch)"
   ],
   "authorization": "Desarrollo autónomo supervisado, Robinson, 2026-10-15 21:39 Bogotá (MASTER_SPEC.md R14-R18)",
   "files_p4b": [
@@ -183,6 +191,7 @@
     "tests/web/test_adverse.py"
   ],
   "external_blocks": [
+    "P7 identity/secrets/encryption choices need Robinson's decision",
     "merges, deployment, real data, managed infrastructure and clinical validation require human authorization"
   ],
   "files_p5": [
@@ -197,8 +206,29 @@
   ],
   "decisions_pending_human": [
     "merge of development branches",
-    "lease TTL/heartbeat defaults and automatic start-up recovery (P6)",
-    "identity provider for production authentication (P7)",
+    "identity provider (OIDC) for production authentication (P7)",
+    "secrets management and key custody (P7)",
+    "encryption at rest approach (P7)",
+    "operational defaults: lease TTL (provisional 30 s), token lifetime, rate limits",
+    "automatic start-up recovery in the HTTP service",
     "reprogramming of FHIR and Knowledge/AI Engine phases"
+  ],
+  "files_p6": [
+    "app/persistence/leases.py",
+    "app/persistence/leasing.py",
+    "app/persistence/recovery.py",
+    "app/persistence/manager.py",
+    "app/persistence/postgres.py",
+    "app/observability/summary.py",
+    "app/web/contracts.py",
+    "app/web/service.py",
+    "app/web/app.py",
+    "app/web/settings.py",
+    "app/__main__.py",
+    "contracts/medrixa.prototype.v1/RecoveryReport.schema.json",
+    "contracts/medrixa.prototype.v1/RecoverySummary.schema.json",
+    "contracts/http/openapi.v1.json",
+    "tests/persistence/test_leases.py",
+    "tests/persistence/crash_worker.py"
   ]
 }

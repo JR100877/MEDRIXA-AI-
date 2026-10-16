@@ -31,3 +31,7 @@ Adaptador HTTP FastAPI local `medrixa.http.v1`: 5 endpoints, contrato OpenAPI pu
 ## P5 — 2026-10-15 (Colombia), rama `dev/p5-postgres` (base `dev/p4b-http` @ 3c60ceb)
 
 `PostgresStateRepository` (`app/persistence/postgres.py`): migración v1 idempotente, instantánea canónica en texto con SHA-256, tabla de eventos append-only forzada por triggers, CAS transaccional con `FOR UPDATE`, verificación completa en cada lectura, errores sin DSN. API: `MEDRIXA_PG_DSN` (secreto, excluyente con `MEDRIXA_STORE_DIR`). Arnés de pruebas con PostgreSQL 16 real efímero (`tests/persistence/pg_support.py`) y omisión explícita sin servidor; `crash_worker` admite DSN por variable de entorno. Dependencia opcional `requirements-postgres.txt` (psycopg 3.3.6). 27 pruebas nuevas; regresión 181/181. Sin base gestionada, sin datos reales, sin despliegue. Siguiente: P6 (`docs/NEXT_PACKAGE.md`).
+
+## P6 — 2026-10-15 (Colombia), rama `dev/p6-leases` (base `dev/p5-postgres` @ e6022d5)
+
+Puerto `RunLeases` (memoria, archivo, PostgreSQL con reloj de la base y migración v2 aditiva), `LeasedExecutor` con latido y guarda de escritura monotónica, recuperación que respeta arrendamientos vivos (`active_elsewhere`), CLI y API integradas (`MEDRIXA_LEASE_TTL_SECONDS`). Cambios aditivos: `set_write_guard` en `PersistentStateManager`, parámetro `leases` en `recover_interrupted_runs`, campo `active_elsewhere` (omitido cuando 0). Sin dependencias nuevas. 32 pruebas nuevas; regresión 213/213; 6/6 mutaciones detectadas. Siguiente: P7 (`docs/NEXT_PACKAGE.md`).

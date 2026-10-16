@@ -1,0 +1,40 @@
+test_acquire_is_exclusive_while_live (tests.persistence.test_leases.InMemoryLeaseTests.test_acquire_is_exclusive_while_live) ... ok
+test_concurrent_acquire_single_winner (tests.persistence.test_leases.InMemoryLeaseTests.test_concurrent_acquire_single_winner) ... ok
+test_expired_lease_is_never_revived_and_can_be_taken (tests.persistence.test_leases.InMemoryLeaseTests.test_expired_lease_is_never_revived_and_can_be_taken) ... ok
+test_invalid_arguments_rejected (tests.persistence.test_leases.InMemoryLeaseTests.test_invalid_arguments_rejected) ... ok
+test_release_frees_and_stale_release_is_harmless (tests.persistence.test_leases.InMemoryLeaseTests.test_release_frees_and_stale_release_is_harmless) ... ok
+test_renew_only_by_live_holder (tests.persistence.test_leases.InMemoryLeaseTests.test_renew_only_by_live_holder) ... ok
+test_live_expired_and_missing_leases (tests.persistence.test_leases.LeaseAwareRecoveryTests.test_live_expired_and_missing_leases) ... ok
+test_cli_recovery_reports_active_elsewhere_only_when_present (tests.persistence.test_leases.LeaseInterfacesTests.test_cli_recovery_reports_active_elsewhere_only_when_present) ... ok
+test_http_recovery_reports_active_elsewhere (tests.persistence.test_leases.LeaseInterfacesTests.test_http_recovery_reports_active_elsewhere) ... /usr/local/lib/python3.13/dist-packages/starlette/testclient.py:53: DeprecationWarning: The anyio.abc.BlockingPortal alias is deprecated, use anyio.from_thread.BlockingPortal instead.
+  _PortalFactoryType = Callable[[], AbstractContextManager[anyio.abc.BlockingPortal]]
+ok
+test_lease_ttl_setting_bounds (tests.persistence.test_leases.LeaseInterfacesTests.test_lease_ttl_setting_bounds) ... ok
+test_executor_rejects_bad_configuration (tests.persistence.test_leases.LeasedExecutionTests.test_executor_rejects_bad_configuration) ... ok
+test_heartbeat_keeps_a_run_longer_than_ttl_alive_and_recovery_skips_it (tests.persistence.test_leases.LeasedExecutionTests.test_heartbeat_keeps_a_run_longer_than_ttl_alive_and_recovery_skips_it) ... ok
+test_lease_held_during_run_and_released_after (tests.persistence.test_leases.LeasedExecutionTests.test_lease_held_during_run_and_released_after) ... ok
+test_lost_lease_stops_execution_without_retry (tests.persistence.test_leases.LeasedExecutionTests.test_lost_lease_stops_execution_without_retry) ... ok
+test_second_executor_cannot_take_a_live_run (tests.persistence.test_leases.LeasedExecutionTests.test_second_executor_cannot_take_a_live_run) ... ok
+test_write_guard_blocks_writes_after_local_deadline (tests.persistence.test_leases.LeasedExecutionTests.test_write_guard_blocks_writes_after_local_deadline) ... Executing <Task pending name='Task-35' coro=<LeasedExecutionTests.test_write_guard_blocks_writes_after_local_deadline() running at /home/claude/medrixa-ai-/tests/persistence/test_leases.py:220> wait_for=<Task cancelling name='Task-36' coro=<Orchestrator.run() running at /home/claude/medrixa-ai-/app/core/orchestrator.py:66> wait_for=<Future cancelled created at /usr/lib/python3.13/asyncio/base_events.py:460> cb=[Task.task_wakeup()] created at /usr/lib/python3.13/asyncio/tasks.py:757> cb=[_run_until_complete_cb() at /usr/lib/python3.13/asyncio/base_events.py:181] created at /usr/lib/python3.13/asyncio/runners.py:101> took 0.601 seconds
+ok
+test_file_store (tests.persistence.test_leases.LeasedProcessRestartTests.test_file_store) ... ok
+test_postgres (tests.persistence.test_leases.LeasedProcessRestartTests.test_postgres) ... ok
+test_acquire_is_exclusive_while_live (tests.persistence.test_leases.LocalFileLeaseTests.test_acquire_is_exclusive_while_live) ... ok
+test_concurrent_acquire_single_winner (tests.persistence.test_leases.LocalFileLeaseTests.test_concurrent_acquire_single_winner) ... ok
+test_corrupt_lease_file_grants_no_liveness_and_never_resets_epoch (tests.persistence.test_leases.LocalFileLeaseTests.test_corrupt_lease_file_grants_no_liveness_and_never_resets_epoch) ... ok
+test_expired_lease_is_never_revived_and_can_be_taken (tests.persistence.test_leases.LocalFileLeaseTests.test_expired_lease_is_never_revived_and_can_be_taken) ... ok
+test_invalid_arguments_rejected (tests.persistence.test_leases.LocalFileLeaseTests.test_invalid_arguments_rejected) ... ok
+test_release_frees_and_stale_release_is_harmless (tests.persistence.test_leases.LocalFileLeaseTests.test_release_frees_and_stale_release_is_harmless) ... ok
+test_renew_only_by_live_holder (tests.persistence.test_leases.LocalFileLeaseTests.test_renew_only_by_live_holder) ... ok
+test_acquire_is_exclusive_while_live (tests.persistence.test_leases.PostgresLeaseTests.test_acquire_is_exclusive_while_live) ... ok
+test_concurrent_acquire_single_winner (tests.persistence.test_leases.PostgresLeaseTests.test_concurrent_acquire_single_winner) ... ok
+test_expired_lease_is_never_revived_and_can_be_taken (tests.persistence.test_leases.PostgresLeaseTests.test_expired_lease_is_never_revived_and_can_be_taken) ... ok
+test_invalid_arguments_rejected (tests.persistence.test_leases.PostgresLeaseTests.test_invalid_arguments_rejected) ... ok
+test_migration_v2_is_additive (tests.persistence.test_leases.PostgresLeaseTests.test_migration_v2_is_additive) ... ok
+test_release_frees_and_stale_release_is_harmless (tests.persistence.test_leases.PostgresLeaseTests.test_release_frees_and_stale_release_is_harmless) ... ok
+test_renew_only_by_live_holder (tests.persistence.test_leases.PostgresLeaseTests.test_renew_only_by_live_holder) ... ok
+
+----------------------------------------------------------------------
+Ran 32 tests in 20.105s
+
+OK

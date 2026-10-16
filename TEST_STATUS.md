@@ -88,3 +88,38 @@ Regresión justificada (P5 tocó la configuración y la fábrica de la API, y a�
 **Verificación de las pruebas:** se introdujeron 4 defectos deliberados (sin comparar la tabla de eventos, sin checksum, sin triggers append-only, sin contrastar columnas con la instantánea). La suite detectó los 4.
 
 **Análisis estático:** ruff con E, F, W, B y S queda limpio. El aviso S608 se resolvió eliminando la concatenación dinámica de SQL, sin silenciarlo.
+
+## P6 — arrendamientos de ejecución (rama `dev/p6-leases`)
+
+Entorno: el mismo de P5 (Python 3.13.16 y PostgreSQL 16.15 real efímero). No hay dependencias nuevas.
+
+Pruebas focalizadas: `python -m unittest tests.persistence.test_leases -v` — **32 aprobadas**, 0 fallos/errores/omitidas. Evidencia: `evidence/P6_tests.txt`.
+
+- **Contrato de arrendamientos (6 × 3 adaptadores, + 1 de archivo y 1 de PostgreSQL).**
+  - La adquisición es exclusiva mientras el arrendamiento vive, y solo el titular vivo renueva.
+  - Un arrendamiento vencido no revive y puede tomarlo otro dueño (epoch 2).
+  - La liberación obsoleta es inofensiva.
+  - 8 hilos concurrentes → 1 ganador, y los argumentos inválidos se rechazan.
+  - En archivo, un arrendamiento corrupto no otorga vivacidad ni reinicia el epoch. En PostgreSQL, la migración v2 es aditiva.
+  - La expiración se observa **esperando en tiempo real**, nunca simulando el reloj.
+- **Ejecutor (6).** Cubren:
+  - El arrendamiento durante y después de la ejecución.
+  - El latido que mantiene viva una ejecución 3 veces más larga que el TTL, que la recuperación omite.
+  - La pérdida del arrendamiento: detiene la ejecución sin reintentar, el resultado en vuelo no se acepta.
+  - La guarda que impide escribir pasado el plazo local.
+  - Un segundo ejecutor que no puede tomar una ejecución viva, y la configuración inválida.
+- **Recuperación con arrendamientos (1):** con arrendamiento vivo → `active_elsewhere`; vencido o sin arrendamiento → revisión. El modo P4 sigue intacto.
+- **Procesos terminados con SIGKILL (2, archivo y PostgreSQL).** Mientras el arrendamiento del proceso muerto vive, la recuperación lo **protege**; cuando vence, lo **recupera** con `INTERRUPTED` y 0 resultados.
+- **Interfaces (3):** la CLI informa `active_elsewhere` solo cuando existe y libera el arrendamiento de su propia ejecución; HTTP lo informa; y `MEDRIXA_LEASE_TTL_SECONDS` respeta sus límites.
+
+Regresión justificada (P6 tocó la recuperación, el gestor persistente, la CLI y la API): `python -m unittest discover -s tests -t . -v` da **213 pruebas, 0 fallos, 0 errores, 0 omitidas** (181 previas + 32 nuevas). Evidencia: `evidence/P6_regression.txt`.
+- Se repitió 3 veces sin intermitencias.
+- Con las advertencias como errores (salvo la de terceros documentada), pasa.
+- Con `MEDRIXA_TEST_PG=off` da `OK (skipped=34)`.
+- No quedan procesos de PostgreSQL al terminar.
+
+**Contratos:** los esquemas `RecoveryReport` y `RecoverySummary` y OpenAPI se regeneraron. Las diferencias son **solo inserciones**, verificadas por programa. Las pruebas de P4 y P4b que comparan salidas exactas pasan sin modificarse.
+
+**Verificación de las pruebas:** se introdujeron 6 defectos deliberados (la recuperación ignora arrendamientos, renovar uno vencido, adquirir sin comprobar vivacidad, sin guarda de escritura, sin latido, y PostgreSQL toma un arrendamiento vivo). La suite detectó los 6.
+
+**Análisis estático:** ruff con E, F, W, B y S queda limpio. Los dos S110 se resolvieron: uno con registro constante y otro con supresión explícita justificada.

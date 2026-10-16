@@ -62,6 +62,7 @@ python -m pip install -r requirements-dev.txt     # fastapi, httpx, uvicorn, ruf
 export MEDRIXA_ENV=development                     # solo development o test; production se rechaza
 export MEDRIXA_AUTH_SECRET="$(python -c 'import secrets; print(secrets.token_urlsafe(48))')"
 export MEDRIXA_STORE_DIR=./runs                   # opcional; sin él, la API usa memoria
+export MEDRIXA_LEASE_TTL_SECONDS=30               # opcional (P6): arrendamiento de ejecuciones
 python -m app.web issue-token --sub dev-1 --role case_runner --case demo-synthetic-001
 python -m app.web serve --port 8000               # solo 127.0.0.1; OpenAPI en /docs (development)
 ```

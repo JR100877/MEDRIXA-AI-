@@ -92,3 +92,14 @@ FastAPI solo traduce. Las reglas viven en `RunService`, que puede reutilizarse e
 | Área | Tras P5 | Pendiente |
 |---|---|---|
 | CORE / persistencia | PostgreSQL probado contra la suite de contrato, recuperación con SIGKILL e idempotencia HTTP | Pool de conexiones, driver asíncrono, roles de mínimo privilegio, respaldos, arrendamiento de ejecuciones (P6) |
+
+## Arrendamientos P6
+
+```
+LeasedExecutor ─acquire/renew/release─► RunLeases (puerto) ─ InMemory | LocalFile | PostgreSQL [reloj de la BD]
+   │ guarda de escritura (plazo monotónico) ─► PersistentStateManager.set_write_guard
+   └ Orchestrator.run (sin cambios)
+recover_interrupted_runs(repo, leases) ─► omite ejecuciones con arrendamiento vivo (active_elsewhere)
+```
+
+El arrendamiento aporta vivacidad; la seguridad sigue dependiendo del CAS y de la inmutabilidad terminal. `StateRepository`, el Orchestrator y los contratos de dominio no cambiaron; solo hubo campos y parámetros aditivos.
