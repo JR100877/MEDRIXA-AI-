@@ -122,7 +122,7 @@ class HttpContractTests(unittest.TestCase):
         self.assertEqual(published["info"]["version"], "medrixa.http.v1")
         for path, operations in published["paths"].items():
             for operation in operations.values():
-                if path != "/v1/health":
+                if path not in ("/v1/health", "/v1/ready"):  # public probes (P8 adds readiness)
                     self.assertEqual(operation["security"], [{"bearerAuth": []}], path)
                 self.assertNotIn("HTTPValidationError", json.dumps(operation))
 

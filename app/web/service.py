@@ -18,6 +18,7 @@ from app.core.state_manager import ContractViolation, StateConflict
 from app.models.contracts import ClinicalCase
 from app.persistence.leases import LeaseHeld, LeaseLost, RunLeases
 from app.persistence.leasing import DEFAULT_TTL_SECONDS, LeasedExecutor
+from app.observability.metrics import Metrics, NullMetrics
 from app.persistence.manager import PersistentStateManager
 from app.persistence.recovery import recover_interrupted_runs
 from app.persistence.repository import (CorruptRecord, DuplicateRun, RepositoryError, RunNotFound,
@@ -50,12 +51,15 @@ def _storage_error(exc: BaseException) -> ApiError:
 class RunService:
     def __init__(self, repository: StateRepository, audit: AuditSink,
                  runner_factory: Callable = create_runner, leases: RunLeases | None = None,
-                 lease_ttl_seconds: float = DEFAULT_TTL_SECONDS, max_active_runs: int = 16):
+                 lease_ttl_seconds: float = DEFAULT_TTL_SECONDS, max_active_runs: int = 16,
+                 metrics: Metrics | None = None):
         if not isinstance(repository, StateRepository) or not isinstance(audit, AuditSink):
             raise TypeError("repository and audit sink ports are required")
         self.repository = repository
         self.leases = leases
-        self._executor = LeasedExecutor(leases, ttl_seconds=lease_ttl_seconds) if leases is not None else None
+        self.metrics: Metrics = metrics or NullMetrics()  # P8
+        self._executor = (LeasedExecutor(leases, ttl_seconds=lease_ttl_seconds, metrics=self.metrics)
+                          if leases is not None else None)
         self._audit = audit
         self._runner_factory = runner_factory
         self._active_lock = Lock()
@@ -69,7 +73,16 @@ class RunService:
         try:
             self._audit.record(audit_event(**fields))
         except Exception:
+            self.metrics.increment("medrixa_audit_failures_total")
             raise ApiError("AUDIT_UNAVAILABLE") from None
+
+    def audit_ready(self) -> bool:
+        return self._audit.ready()
+
+    @property
+    def active_runs(self) -> int:
+        with self._active_lock:
+            return self._active
 
     def audit_auth_failure(self, request_id: str) -> None:
         self._record(request_id=request_id, action="auth", phase="outcome", outcome="UNAUTHENTICATED",
@@ -94,11 +107,14 @@ class RunService:
             view, replayed = await self._create_or_replay(case, run_id)
             if replayed:
                 code = "REPLAYED"
+            elif view.stop_reason is not None:
+                self.metrics.increment("medrixa_run_stop_reasons_total", {"reason": view.stop_reason})
             return view, replayed
         except ApiError as error:
             code, status = error.code, error.status
             raise
         finally:
+            self.metrics.increment("medrixa_runs_total", {"outcome": code})
             self._record(**base, phase="outcome", outcome=code, status_code=status)
 
     async def _create_or_replay(self, case: ClinicalCase, run_id: str) -> tuple[RunView, bool]:
@@ -106,6 +122,7 @@ class RunService:
         # stored in "created" without an executor. Replays also wait for capacity.
         with self._active_lock:
             if self._active >= self._max_active:
+                self.metrics.increment("medrixa_capacity_rejections_total")
                 raise ApiError("CAPACITY_EXCEEDED", retry_after=1)
             self._active += 1
         try:
@@ -186,6 +203,13 @@ class RunService:
                     raise ApiError("RUNS_ACTIVE")
                 try:
                     report = recover_interrupted_runs(self.repository, self.leases)
+                    for result, amount in (("moved_to_review", len(report.moved_to_review)),
+                                           ("active_elsewhere", len(report.active_elsewhere)),
+                                           ("not_started", len(report.not_started)),
+                                           ("already_terminal", report.already_terminal),
+                                           ("corrupt", report.corrupt_records)):
+                        if amount:
+                            self.metrics.increment("medrixa_recovery_runs_total", {"result": result}, amount)
                 except Exception as exc:
                     raise _storage_error(exc) from None
             return RecoveryView(moved_to_review=len(report.moved_to_review), not_started=len(report.not_started),

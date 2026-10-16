@@ -85,7 +85,8 @@
               "AUDIT_UNAVAILABLE",
               "INTERNAL_ERROR",
               "RATE_LIMITED",
-              "CAPACITY_EXCEEDED"
+              "CAPACITY_EXCEEDED",
+              "NOT_READY"
             ],
             "title": "Code",
             "type": "string"
@@ -189,6 +190,25 @@
           "unit"
         ],
         "title": "Observation",
+        "type": "object"
+      },
+      "ReadyView": {
+        "additionalProperties": false,
+        "properties": {
+          "api_version": {
+            "const": "medrixa.http.v1",
+            "default": "medrixa.http.v1",
+            "title": "Api Version",
+            "type": "string"
+          },
+          "status": {
+            "const": "ready",
+            "default": "ready",
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "title": "ReadyView",
         "type": "object"
       },
       "RecoveryView": {
@@ -560,6 +580,103 @@
           }
         },
         "summary": "Health",
+        "tags": [
+          "system"
+        ]
+      }
+    },
+    "/v1/metrics": {
+      "get": {
+        "operationId": "metrics_endpoint_v1_metrics_get",
+        "responses": {
+          "200": {
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "429": {
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Prometheus text metrics (aggregate counters only; no identifiers)",
+        "tags": [
+          "system"
+        ]
+      }
+    },
+    "/v1/ready": {
+      "get": {
+        "operationId": "ready_v1_ready_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReadyView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "summary": "Readiness: store reachable, schema migrated, token keys available, audit configured",
         "tags": [
           "system"
         ]

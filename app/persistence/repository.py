@@ -113,6 +113,10 @@ class StateRepository(ABC):
     @abstractmethod
     def scan(self) -> tuple[RunIndexEntry, ...]: ...
 
+    def ping(self) -> None:  # noqa: B027 - optional hook; non-abstract on purpose (no breaking change)
+        """P8 readiness probe: raise if the store cannot serve requests. Default: nothing to check."""
+        return None
+
     def list_runs(self, case_id: str | None = None) -> tuple[str, ...]:
         """Readable run ids, optionally restricted to one case."""
         return tuple(sorted(e.run_id for e in self.scan()

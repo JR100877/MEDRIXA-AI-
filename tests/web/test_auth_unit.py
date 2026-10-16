@@ -121,7 +121,8 @@ class PolicyTests(unittest.TestCase):
     def test_role_matrix_is_least_privilege(self):
         self.assertEqual(permissions_of(self.principal("case_runner")), {"runs:create", "runs:read"})
         self.assertEqual(permissions_of(self.principal("case_reviewer")), {"runs:read"})
-        self.assertEqual(permissions_of(self.principal("operator")), {"runs:recover"})
+        # P8: operators also read aggregate metrics (no case data); still no run access.
+        self.assertEqual(permissions_of(self.principal("operator")), {"runs:recover", "metrics:read"})
 
     def test_default_deny_and_case_scope(self):
         runner, reviewer, operator = (self.principal(r) for r in ("case_runner", "case_reviewer", "operator"))

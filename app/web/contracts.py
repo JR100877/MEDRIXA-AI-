@@ -15,6 +15,7 @@ ErrorCode = Literal[
     "IDEMPOTENCY_IN_PROGRESS", "CONFLICT", "RUNS_ACTIVE", "STORE_UNAVAILABLE", "STORE_INTEGRITY_ERROR",
     "AUDIT_UNAVAILABLE", "INTERNAL_ERROR",
     "RATE_LIMITED", "CAPACITY_EXCEEDED",  # P7.3 (additive)
+    "NOT_READY",  # P8 (additive)
 ]
 
 
@@ -93,6 +94,11 @@ class RecoveryView(HttpContract):
         if self.active_elsewhere == 0:
             del data["active_elsewhere"]  # additive field: v1 responses unchanged when unused
         return data
+
+
+class ReadyView(HttpContract):
+    api_version: ApiVersion = "medrixa.http.v1"
+    status: Literal["ready"] = "ready"
 
 
 class HealthView(HttpContract):

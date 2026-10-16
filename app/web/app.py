@@ -6,6 +6,7 @@ request id, no-store/nosniff/CSP headers, OpenAPI UI only in ``development``.
 """
 import json
 import re
+import time
 import uuid
 from contextlib import asynccontextmanager
 from typing import Annotated, Any
@@ -14,18 +15,20 @@ from fastapi import FastAPI, Path, Request
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.openapi.utils import get_openapi
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, PlainTextResponse
 from starlette.concurrency import run_in_threadpool
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.api.contracts import InputRejected, parse_strict
 from app.persistence.memory import InMemoryStateRepository
 from app.persistence.repository import StateRepository
+from app.observability.metrics import InMemoryMetrics
 from app.security.ratelimit import RateLimiter, TokenBucketLimiter
+from app.web.policy import Forbidden, OutOfScope, require
 from app.web import API_VERSION
 from app.web.audit import AuditSink, LoggingAuditSink
 from app.web.auth import AuthenticationFailed, Authenticator, HmacTokenAuthenticator, Principal
-from app.web.contracts import (CreateRunRequest, ErrorCode, ErrorResponse, HealthView, RecoveryView, RunEventsView,
+from app.web.contracts import (CreateRunRequest, ErrorCode, ErrorResponse, ReadyView, HealthView, RecoveryView, RunEventsView,
                                RunView)
 from app.web.errors import ApiError, error_payload
 from app.web.service import IDEMPOTENCY_KEY, RunService
@@ -39,6 +42,8 @@ _SECURITY_HEADERS = {
     "Referrer-Policy": "no-referrer",
 }
 _API_CSP = "default-src 'none'; frame-ancestors 'none'"
+_METHODS = frozenset({"GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"})
+PROMETHEUS_CONTENT_TYPE = "text/plain; version=0.0.4; charset=utf-8"
 _DOC_PATHS = {"/docs", "/docs/oauth2-redirect", "/openapi.json"}
 _STATUS_CODES: dict[int, ErrorCode] = {404: "NOT_FOUND", 405: "METHOD_NOT_ALLOWED", 413: "PAYLOAD_TOO_LARGE",
                  415: "UNSUPPORTED_MEDIA_TYPE", 401: "UNAUTHENTICATED", 403: "FORBIDDEN"}
@@ -54,7 +59,7 @@ def _json(model, status: int = 200, headers: dict | None = None) -> JSONResponse
 
 def create_app(settings: Settings, repository: StateRepository | None = None,
                audit: AuditSink | None = None, authenticator: Authenticator | None = None,
-               runner_factory=None, leases=None) -> FastAPI:
+               runner_factory=None, leases=None, metrics: InMemoryMetrics | None = None) -> FastAPI:
     settings = Settings.model_validate(settings)
     if repository is None:
         if settings.postgres_dsn is not None:
@@ -84,9 +89,22 @@ def create_app(settings: Settings, repository: StateRepository | None = None,
             raise ValueError("no authentication configured")
     active_authenticator: Authenticator = authenticator
     service_args = {"runner_factory": runner_factory} if runner_factory else {}
+    registry = metrics if metrics is not None else InMemoryMetrics()  # P8
     service = RunService(repository, audit or LoggingAuditSink(), leases=leases,
                          lease_ttl_seconds=settings.lease_ttl_seconds, max_active_runs=settings.max_active_runs,
-                         **service_args)
+                         metrics=registry, **service_args)
+    registry.add_collector(lambda m: m.set_gauge("medrixa_active_runs", service.active_runs))
+    pool = getattr(repository, "_pool", None)
+    if pool is not None:
+        def pool_gauges(m: InMemoryMetrics) -> None:
+            current = getattr(repository, "_pool", None)  # None once closed
+            if current is None:
+                return
+            stats = current.get_stats()
+            m.set_gauge("medrixa_db_pool_connections", stats.get("pool_size", 0), {"state": "open"})
+            m.set_gauge("medrixa_db_pool_connections", stats.get("pool_available", 0), {"state": "idle"})
+            m.set_gauge("medrixa_db_pool_connections", stats.get("requests_waiting", 0), {"state": "waiting"})
+        registry.add_collector(pool_gauges)
     ip_limiter: RateLimiter = TokenBucketLimiter(settings.rate_limit_ip_per_minute)
     subject_limiter: RateLimiter = TokenBucketLimiter(settings.rate_limit_subject_per_minute)
     allowed_hosts = frozenset(settings.allowed_hosts)
@@ -122,6 +140,7 @@ def create_app(settings: Settings, repository: StateRepository | None = None,
 
     @app.middleware("http")
     async def security_envelope(request: Request, call_next):
+        started = time.perf_counter()
         supplied = request.headers.get("x-request-id", "")
         request.state.request_id = supplied if _REQUEST_ID.match(supplied) else uuid.uuid4().hex
         host = (request.headers.get("host") or "").rsplit(":", 1)[0].strip("[]")
@@ -132,6 +151,7 @@ def create_app(settings: Settings, repository: StateRepository | None = None,
         if host not in allowed_hosts:
             response = error_response(request, "INVALID_INPUT")
         elif retry is not None:
+            registry.increment("medrixa_rate_limited_total", {"scope": "address"})
             response = error_response(request, "RATE_LIMITED", int(retry))
         else:
             try:
@@ -143,6 +163,13 @@ def create_app(settings: Settings, repository: StateRepository | None = None,
         if request.url.path not in _DOC_PATHS:
             response.headers["Content-Security-Policy"] = _API_CSP
         response.headers["X-Request-ID"] = request.state.request_id
+        # P8: bounded labels only (route template, never the raw path or identifiers).
+        route = getattr(request.scope.get("route"), "path", None) or "unrouted"
+        method = request.method if request.method in _METHODS else "OTHER"
+        registry.increment("medrixa_http_requests_total",
+                           {"method": method, "route": route, "status": str(response.status_code)})
+        registry.observe("medrixa_http_request_duration_seconds", time.perf_counter() - started,
+                         {"method": method, "route": route})
         return response
 
     @app.exception_handler(ApiError)
@@ -163,10 +190,12 @@ def create_app(settings: Settings, repository: StateRepository | None = None,
             principal = await run_in_threadpool(active_authenticator.authenticate,
                                                 request.headers.get("authorization"))
         except AuthenticationFailed:
+            registry.increment("medrixa_auth_failures_total")
             service.audit_auth_failure(request.state.request_id)
             raise ApiError("UNAUTHENTICATED") from None
         retry = subject_limiter.check(f"{principal.organization or '-'}\x00{principal.subject}")
         if retry is not None:
+            registry.increment("medrixa_rate_limited_total", {"scope": "identity"})
             raise ApiError("RATE_LIMITED", int(retry))
         return principal
 
@@ -189,6 +218,31 @@ def create_app(settings: Settings, repository: StateRepository | None = None,
     @app.get("/v1/health", response_model=HealthView, tags=["system"], responses=_errors(429))
     async def health() -> JSONResponse:
         return _json(HealthView())
+
+    def readiness() -> bool:
+        try:
+            repository.ping()
+            return bool(active_authenticator.ready() and service.audit_ready())
+        except Exception:  # any failure means "not ready"; details stay out of the response
+            return False
+
+    @app.get("/v1/ready", response_model=ReadyView, tags=["system"], responses=_errors(429, 503),
+             summary="Readiness: store reachable, schema migrated, token keys available, audit configured")
+    async def ready() -> JSONResponse:
+        if await run_in_threadpool(readiness):
+            return _json(ReadyView())
+        raise ApiError("NOT_READY", retry_after=5)
+
+    @app.get("/v1/metrics", tags=["system"], responses=_errors(401, 403, 429), openapi_extra=bearer,
+             summary="Prometheus text metrics (aggregate counters only; no identifiers)",
+             response_class=PlainTextResponse)
+    async def metrics_endpoint(request: Request) -> PlainTextResponse:
+        principal = await authenticate(request)
+        try:
+            require(principal, "metrics:read")
+        except (Forbidden, OutOfScope):
+            raise ApiError("FORBIDDEN") from None
+        return PlainTextResponse(registry.render_prometheus(), media_type=PROMETHEUS_CONTENT_TYPE)
 
     @app.post("/v1/runs", status_code=201, response_model=RunView, tags=["runs"],
               summary="Create and execute a synthetic run (idempotent)",

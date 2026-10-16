@@ -158,25 +158,41 @@ class JwksCache:
             raise ValueError("no signing keys with kid")
         return keys
 
+    def _refresh_if_due(self, now: float) -> None:
+        """Fetch the JWKS unless one was attempted within ``min_refresh_seconds``. Caller holds the lock."""
+        if self._last_attempt is not None and now - self._last_attempt < self._settings.jwks_min_refresh_seconds:
+            return
+        self._last_attempt = now
+        self.fetch_count += 1
+        try:
+            self._keys = self._signing_keys(self._fetch())
+            self._fetched_at = now
+        except Exception:
+            # Constant message: never log URLs with credentials or response bodies.
+            _log.warning("JWKS refresh failed; using cached keys if still allowed")
+
+    def _usable(self, now: float) -> bool:
+        cfg = self._settings
+        return self._fetched_at is not None and now - self._fetched_at < cfg.jwks_cache_seconds + cfg.jwks_max_stale_seconds
+
+    def _fresh(self, now: float) -> bool:
+        return self._fetched_at is not None and now - self._fetched_at < self._settings.jwks_cache_seconds
+
+    def ready(self) -> bool:
+        """Usable signing keys exist (refreshing at most once per min_refresh interval)."""
+        now = self._clock()
+        with self._lock:
+            if not self._fresh(now):
+                self._refresh_if_due(now)
+            return bool(self._keys) and self._usable(now)
+
     def raw_key(self, kid: str) -> dict[str, Any]:
         now = self._clock()
-        cfg = self._settings
         with self._lock:
-            fresh = self._fetched_at is not None and now - self._fetched_at < cfg.jwks_cache_seconds
-            if kid in self._keys and fresh:
+            if kid in self._keys and self._fresh(now):
                 return self._keys[kid]
-            if self._last_attempt is None or now - self._last_attempt >= cfg.jwks_min_refresh_seconds:
-                self._last_attempt = now
-                self.fetch_count += 1
-                try:
-                    self._keys = self._signing_keys(self._fetch())
-                    self._fetched_at = now
-                except Exception:
-                    # Constant message: never log URLs with credentials or response bodies.
-                    _log.warning("JWKS refresh failed; using cached keys if still allowed")
-            usable = (self._fetched_at is not None
-                      and now - self._fetched_at < cfg.jwks_cache_seconds + cfg.jwks_max_stale_seconds)
-            if usable and kid in self._keys:
+            self._refresh_if_due(now)
+            if self._usable(now) and kid in self._keys:
                 return self._keys[kid]
         raise AuthenticationFailed()
 
@@ -194,6 +210,9 @@ class OidcJwtAuthenticator(Authenticator):
     def __init__(self, settings: OidcSettings, jwks: JwksCache | None = None):
         self.settings = OidcSettings.model_validate(settings)
         self.jwks = jwks or JwksCache(self.settings)
+
+    def ready(self) -> bool:
+        return self.jwks.ready()
 
     def authenticate(self, authorization_header: str | None) -> Principal:
         try:

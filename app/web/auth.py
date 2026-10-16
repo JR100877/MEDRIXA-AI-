@@ -64,6 +64,10 @@ class Authenticator(ABC):
     def authenticate(self, authorization_header: str | None) -> Principal:
         """Return a verified Principal or raise AuthenticationFailed."""
 
+    def ready(self) -> bool:
+        """P8 readiness: can tokens be verified right now? Default: yes (local keys)."""
+        return True
+
 
 def _b64encode(raw: bytes) -> str:
     return base64.urlsafe_b64encode(raw).rstrip(b"=").decode("ascii")

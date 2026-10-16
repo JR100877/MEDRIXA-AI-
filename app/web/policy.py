@@ -4,19 +4,19 @@
 |---------------|----------------------------|------------|
 | case_runner   | runs:create, runs:read     | own cases  |
 | case_reviewer | runs:read                  | own cases  |
-| operator      | runs:recover               | none       |
+| operator      | runs:recover, metrics:read | none       |
 
 No role can approve a clinical decision: no such permission exists.
 """
 from typing import Literal
 
 Role = Literal["case_runner", "case_reviewer", "operator"]
-Permission = Literal["runs:create", "runs:read", "runs:recover"]
+Permission = Literal["runs:create", "runs:read", "runs:recover", "metrics:read"]
 
 ROLE_PERMISSIONS: dict[str, frozenset[str]] = {
     "case_runner": frozenset({"runs:create", "runs:read"}),
     "case_reviewer": frozenset({"runs:read"}),
-    "operator": frozenset({"runs:recover"}),
+    "operator": frozenset({"runs:recover", "metrics:read"}),  # P8: aggregate metrics, no case data
 }
 CASE_SCOPED: frozenset[str] = frozenset({"runs:create", "runs:read"})
 

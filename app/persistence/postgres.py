@@ -156,6 +156,10 @@ class PostgresStateRepository(StateRepository):
             return int(cursor.fetchone()[0])
         return self._run(read)
 
+    def ping(self) -> None:
+        """Readiness: database reachable and schema migrated (one round trip)."""
+        self.require_schema(1)
+
     def require_schema(self, minimum: int) -> None:
         if self.schema_version() < minimum:
             raise SchemaNotReady("database schema not migrated to the required version")

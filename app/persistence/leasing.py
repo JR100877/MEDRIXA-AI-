@@ -17,6 +17,7 @@ import time
 
 from app.core.state import State
 from app.persistence.leases import LeaseLost, RunLeases, check_ttl, new_owner_id
+from app.observability.metrics import Metrics, NullMetrics
 from app.persistence.manager import PersistentStateManager
 
 DEFAULT_TTL_SECONDS = 30.0
@@ -25,10 +26,11 @@ _log = logging.getLogger("medrixa.leasing")
 
 class LeasedExecutor:
     def __init__(self, leases: RunLeases, owner: str | None = None, ttl_seconds: float = DEFAULT_TTL_SECONDS,
-                 heartbeat_seconds: float | None = None):
+                 heartbeat_seconds: float | None = None, metrics: Metrics | None = None):
         if not isinstance(leases, RunLeases):
             raise TypeError("leases must implement RunLeases")
         self.leases = leases
+        self.metrics: Metrics = metrics or NullMetrics()  # P8
         self.owner = owner or new_owner_id()
         self.ttl = check_ttl(ttl_seconds)
         self.heartbeat = heartbeat_seconds if heartbeat_seconds is not None else self.ttl / 3
@@ -55,12 +57,14 @@ class LeasedExecutor:
                 try:
                     lease = self.leases.renew(lease, self.ttl)
                     deadline = renew_started + self.ttl - self.margin
+                    self.metrics.increment("medrixa_lease_renewals_total")
                 except Exception:  # lease lost or store failure: liveness can no longer be proven
                     task.cancel()
                     # The cancelled run's own outcome (CancelledError, a conflict or a guard refusal)
                     # is superseded by LeaseLost; it is awaited only so nothing keeps running.
                     with contextlib.suppress(asyncio.CancelledError, Exception):
                         await task
+                    self.metrics.increment("medrixa_lease_lost_total")
                     raise LeaseLost("lease lost during execution") from None
         finally:
             if not task.done():

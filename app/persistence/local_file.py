@@ -154,6 +154,11 @@ class ProvisionalLocalFileRepository(StateRepository):
         except (ValueError, TypeError, RecursionError, ValidationError, UnicodeDecodeError):
             raise CorruptRecord("unreadable run record") from None
 
+    def ping(self) -> None:
+        """Readiness: the store directory exists and is writable by this process."""
+        if not (self.root.is_dir() and os.access(self.root, os.W_OK | os.X_OK)):
+            raise OSError("store directory not writable")
+
     # -- port ----------------------------------------------------------------
     def create(self, state: State) -> State:
         state = check_new_run(state)

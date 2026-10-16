@@ -24,6 +24,7 @@ CATALOGUE: dict[ErrorCode, tuple[int, str]] = {
     "STORE_UNAVAILABLE": (503, "Storage is unavailable."),
     "RATE_LIMITED": (429, "Too many requests; retry after the indicated delay."),
     "CAPACITY_EXCEEDED": (503, "Execution capacity is exhausted; retry after the indicated delay."),
+    "NOT_READY": (503, "The service is not ready."),
 }
 
 

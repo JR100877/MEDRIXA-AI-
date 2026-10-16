@@ -34,6 +34,10 @@ class AuditSink(ABC):
     @abstractmethod
     def record(self, event: AccessAuditEvent) -> None: ...
 
+    def ready(self) -> bool:
+        """P8 readiness: would a record be accepted? Default: yes."""
+        return True
+
 
 class MemoryAuditSink(AuditSink):
     """Test sink."""
@@ -53,6 +57,9 @@ class LoggingAuditSink(AuditSink):
 
     def __init__(self, logger: logging.Logger | None = None):
         self._logger = logger or logging.getLogger("medrixa.audit")
+
+    def ready(self) -> bool:
+        return self._logger.isEnabledFor(logging.INFO) and self._logger.hasHandlers()
 
     def record(self, event: AccessAuditEvent) -> None:
         # Fail closed: an unconfigured logger would drop INFO records silently.
